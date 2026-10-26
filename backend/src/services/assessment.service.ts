@@ -1,7 +1,21 @@
+import { z } from 'zod';
 import { ApiError } from '../middleware/errors';
 import { Assessment, IAssessment, IAssessmentAnswer, IAssessmentResult, ISkillScore, IThresholds } from '../models/Assessment';
 import { getResumeOwned } from './resume.service';
 import { InterviewSession, InterviewSessionDoc } from '../models/InterviewSession';
+
+export const startAssessmentSchema = z.object({
+  resumeId: z.string().min(1, 'A resume is required'),
+  questionCount: z.coerce.number().int().min(1).max(20).default(10),
+  thresholds: z.any().optional(),
+});
+
+export const submitAnswerSchema = z.object({
+  questionId: z.string().min(1, 'questionId is required'),
+  text: z.string().min(1, 'An answer is required'),
+  isCorrect: z.boolean().optional(),
+  marksAwarded: z.number().optional(),
+});
 
 const DEFAULT_THRESHOLDS: IThresholds = {
   passScore: 50,
@@ -41,6 +55,8 @@ export async function startAssessment(
     questionCount,
     answeredCount: 0,
     score: 0,
+    currentIndex: 0,
+    questions,
     answers: [],
     thresholds: input.thresholds,
   });
@@ -114,8 +130,8 @@ export async function getAssessmentStatus(
     throw new ApiError(403, 'Not authorized to view this assessment');
   }
 
-  const answeredQuestionIds = new Set(assessment.answers.map((a) => a.questionId));
-  const questions = assessment.questions.map((q) => ({
+  const answeredQuestionIds = new Set(assessment.answers.map((a: IAssessmentAnswer) => a.questionId));
+  const questions = (assessment.questions || []).map((q: any) => ({
     id: q.id,
     type: q.type,
     question: q.question,
@@ -292,12 +308,12 @@ function checkAnswerCorrect(question: any, answerText: string): boolean {
   if (lowerAnswer === lowerExpected) return true;
   
   // Contains check for partial correctness
-  if (lowerExpected.split(' ').some(word => lowerAnswer.includes(word))) return true;
+  if (lowerExpected.split(' ').some((word: string) => lowerAnswer.includes(word))) return true;
   
   // Keyword overlap check
   const answerWords = new Set(lowerAnswer.split(' '));
   const expectedWords = new Set(lowerExpected.split(' '));
-  const overlap = Array.from(expectedWords).filter(word => answerWords.has(word)).length;
+  const overlap = Array.from(expectedWords).filter((word: unknown) => typeof word === 'string' && answerWords.has(word)).length;
   const matchRatio = expectedWords.size > 0 ? overlap / expectedWords.size : 0;
   
   return matchRatio >= 0.5;

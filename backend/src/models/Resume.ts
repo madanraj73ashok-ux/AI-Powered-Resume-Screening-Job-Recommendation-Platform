@@ -51,6 +51,8 @@ const resumeSchema = new mongoose.Schema(
       experience: { type: [mongoose.Schema.Types.Mixed], default: [] },
       projects: { type: [mongoose.Schema.Types.Mixed], default: [] },
       certifications: { type: [mongoose.Schema.Types.Mixed], default: [] },
+      achievements: { type: [mongoose.Schema.Types.Mixed], default: [] },
+      responsibilities: { type: [mongoose.Schema.Types.Mixed], default: [] },
       extractionErrors: { type: [String], default: [] },
       charCount: { type: Number, default: 0 },
     },

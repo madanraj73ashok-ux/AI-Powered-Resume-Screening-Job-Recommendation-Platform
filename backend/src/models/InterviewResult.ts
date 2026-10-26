@@ -19,6 +19,7 @@ const interviewResultSchema = new mongoose.Schema(
       ref: 'InterviewSession',
       required: true,
       index: true,
+      unique: true,
     },
     resume: { type: mongoose.Schema.Types.ObjectId, ref: 'Resume' },
     difficulty: { type: String, required: true },
@@ -35,6 +36,7 @@ const interviewResultSchema = new mongoose.Schema(
     missingConcepts: { type: [String], default: [] },
     recommendations: { type: [String], default: [] },
     summary: { type: String },
+    liveReport: { type: mongoose.Schema.Types.Mixed },
     createdAt: { type: Date, default: Date.now, index: true },
   },
   { timestamps: true }
@@ -63,6 +65,7 @@ export interface InterviewResultDoc extends mongoose.Document {
   missingConcepts: string[];
   recommendations: string[];
   summary?: string;
+  liveReport?: Record<string, unknown>;
   createdAt: Date;
 }
 

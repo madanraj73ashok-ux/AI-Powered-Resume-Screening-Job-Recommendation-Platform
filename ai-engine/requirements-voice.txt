@@ -1,0 +1,6 @@
+# Optional local voice runtime; core text/resume processing stays independent.
+faster-whisper==1.2.1
+piper-tts==1.8.0
+av==16.1.0
+ctranslate2==4.6.0
+setuptools==80.9.0

@@ -105,13 +105,32 @@ engine is not running. Sample resumes are in `docs/samples/` (synthetic data onl
 
 ## Project status
 
+### Local voice interview extension
+
+The interview setup includes a live voice mode with local Whisper/Piper speech,
+an illustrated interviewer, optional camera preview and face-presence events,
+saved transcripts, and the original text-mode fallback. See
+[voice installation, verification and limitations](docs/LIVE_INTERVIEW.md).
+The HTTP/WebSocket/speech/report pipeline has been verified using synthetic audio.
+Physical microphone, speaker and webcam behavior still needs device/browser
+permission verification; this is not claimed as a completed human voice test.
+Job matching (Phase 5) remains pending in this checkpoint.
+
+### Voice interview design reference
+
+The supplied design reference for the live interview experience:
+
+![VeriHire AI live voice interview design reference](docs/images/live-interview-reference.png)
+
 - [x] Phase 1 — inspection & tooling
 - [x] Phase 2 — foundation: monorepo, Express+TS API, auth (register/login/session/logout),
       profile management, role-based authorization, in-memory MongoDB fallback, React shell
 - [x] Phase 3 — resume upload (PDF/DOCX), local extraction (skills, education, projects,
       experience), claim-level findings, editable review, private storage, MongoDB persistence,
       sidebar + dashboard integration
-- [ ] Phase 4 — personalized AI interview engine
+- [x] Phase 4 — personalized AI interview engine: local curated questions, adaptive follow-ups,
+      difficulty levels, rubric scoring, MongoDB session resume and detailed results.
+      See [Phase 4 implementation and verification](docs/PHASE4.md).
 - [ ] Phase 5 — skills dashboard & job matching
 - [ ] Phase 6 — application tracking
 - [ ] Phase 7 — recruiter & admin dashboards

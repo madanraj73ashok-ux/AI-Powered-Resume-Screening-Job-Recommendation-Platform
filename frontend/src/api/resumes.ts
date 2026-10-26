@@ -31,6 +31,8 @@ export interface ResumeProfile {
   experience?: ResumeItem[];
   projects?: ResumeItem[];
   certifications?: ResumeItem[];
+  achievements?: ResumeItem[];
+  responsibilities?: ResumeItem[];
   extractionErrors?: string[];
   charCount?: number;
 }

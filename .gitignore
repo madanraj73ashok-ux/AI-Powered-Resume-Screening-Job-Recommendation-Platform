@@ -23,3 +23,6 @@ mongodb-binaries/
 .idea/
 test-results/
 playwright-report/
+ai-engine/models/
+frontend/public/models/
+frontend/public/mediapipe/
