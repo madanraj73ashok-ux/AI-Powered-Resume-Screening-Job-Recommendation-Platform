@@ -116,6 +116,12 @@ Physical microphone, speaker and webcam behavior still needs device/browser
 permission verification; this is not claimed as a completed human voice test.
 Job matching (Phase 5) remains pending in this checkpoint.
 
+### Voice interview design reference
+
+The supplied design reference for the live interview experience:
+
+![VeriHire AI live voice interview design reference](docs/images/live-interview-reference.png)
+
 - [x] Phase 1 — inspection & tooling
 - [x] Phase 2 — foundation: monorepo, Express+TS API, auth (register/login/session/logout),
       profile management, role-based authorization, in-memory MongoDB fallback, React shell
