@@ -1,0 +1,22 @@
+{
+  "name": "verihire-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VeriHire AI - Intelligent Resume Verification, AI Interview, Skill Assessment and Job Application Platform",
+  "scripts": {
+    "install:all": "npm --prefix backend install && npm --prefix frontend install",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:ai": "cd ai-engine && python -m uvicorn app.main:app --reload --port 8000",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "test": "npm --prefix backend test && npm --prefix frontend test && cd ai-engine && python -m pytest -q",
+    "test:backend": "npm --prefix backend test",
+    "test:frontend": "npm --prefix frontend test",
+    "test:ai": "cd ai-engine && python -m pytest -q",
+    "seed:admin": "npm --prefix backend run seed:admin",
+    "typecheck": "npm --prefix backend run typecheck && npm --prefix frontend run typecheck"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
