@@ -138,6 +138,8 @@ const ALLOWED_PROFILE_FIELDS = [
   'experience',
   'projects',
   'certifications',
+  'achievements',
+  'responsibilities',
 ] as const;
 
 export async function updateResumeProfile(

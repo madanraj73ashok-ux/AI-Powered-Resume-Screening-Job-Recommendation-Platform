@@ -19,12 +19,14 @@ from .extract import ExtractionError, extract_document
 from .questions import DIFFICULTIES, generate_questions
 from .scoring import evaluate_answer
 from .skills import skill_categories
+from .speech import router as speech_router
 
 app = FastAPI(
     title="VeriHire Local AI Engine",
     version="1.0.0",
     description="Local resume extraction and analysis. No external AI calls.",
 )
+app.include_router(speech_router)
 
 # Allow only the backend on localhost (internal service).
 app.add_middleware(
@@ -48,6 +50,7 @@ class GenerateQuestionsRequest(BaseModel):
     difficulty: str = "Intermediate"
     count: int = 8
     seed: str = ""
+    interviewType: str | None = None
 
 
 class EvaluateAnswerRequest(BaseModel):
@@ -114,12 +117,15 @@ def generate(req: GenerateQuestionsRequest) -> dict:
         raise HTTPException(status_code=422, detail=f"Difficulty must be one of {list(DIFFICULTIES)}")
     if not (3 <= req.count <= 15):
         raise HTTPException(status_code=422, detail="Question count must be between 3 and 15.")
+    if req.interviewType not in (None, "HR", "Technical", "Project-based", "Behavioral", "Mixed"):
+        raise HTTPException(status_code=422, detail="Unsupported interview type.")
     return generate_questions(
         req.profile,
         findings=req.findings,
         difficulty=req.difficulty,
         count=req.count,
         seed=req.seed,
+        interview_type=req.interviewType,
     )
 
 

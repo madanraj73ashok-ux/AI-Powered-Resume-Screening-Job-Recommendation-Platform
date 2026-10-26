@@ -15,7 +15,6 @@ Every generated question carries:
 from __future__ import annotations
 
 import hashlib
-import uuid
 from typing import List, Optional
 
 DIFFICULTIES = ("Beginner", "Intermediate", "Advanced")
@@ -250,12 +249,13 @@ def _max_marks(difficulty: str) -> int:
     return {"Beginner": 8, "Intermediate": 10, "Advanced": 12}.get(difficulty, 10)
 
 
-def _rubric() -> dict:
+def _rubric(concepts: List[str], qtype: str) -> dict:
+    focus = ', '.join(concepts)
     return {
-        "technicalAccuracy": "Correct, precise technical content and correct terminology",
-        "completeness": "Addresses every part of the question",
-        "practicalExamples": "Concrete, specific examples from real work",
-        "understanding": "Explains why decisions were made and their trade-offs",
+        "technicalAccuracy": f"40%: Explain the relevant concepts accurately: {focus}.",
+        "completeness": f"25%: Address the whole {qtype.replace('_', ' ')} question, including {focus}.",
+        "practicalExamples": "20%: Give a specific example, your actions and a measurable or observable outcome.",
+        "understanding": f"15%: Explain the reasoning, limitations and trade-offs behind {concepts[0] if concepts else 'your approach'}.",
     }
 
 
@@ -269,14 +269,14 @@ def _q(
     follow_ups: Optional[List[str]] = None,
 ) -> dict:
     return {
-        "id": f"Q{uuid.uuid4().hex[:10]}",
+        "id": "Q" + hashlib.sha256(f"{difficulty}|{qtype}|{text}".encode()).hexdigest()[:12],
         "text": text,
         "type": qtype,
         "difficulty": difficulty,
         "skill": skill,
         "sourceClaim": source_claim,
         "expectedConcepts": [c.lower() for c in concepts],
-        "rubric": _rubric(),
+        "rubric": _rubric(concepts, qtype),
         "maxMarks": _max_marks(difficulty),
         "followUpTemplates": follow_ups or [],
         "isFollowUp": False,
@@ -302,6 +302,7 @@ def generate_questions(
     difficulty: str = "Intermediate",
     count: int = 8,
     seed: str = "",
+    interview_type: Optional[str] = None,
 ) -> dict:
     """Generate a deterministic, personalized question set."""
     if difficulty not in DIFFICULTIES:
@@ -392,7 +393,7 @@ def generate_questions(
         snippet = _project_snippet(project)
         if not snippet:
             continue
-        qtype, question, concepts = project_questions[i % len(project_questions)]
+        qtype, question, concepts = project_questions[-1] if difficulty == "Advanced" else project_questions[i % len(project_questions)]
         pool.append(
             _q(
                 f"Your resume mentions: “{snippet}”. {question}",
@@ -424,17 +425,20 @@ def generate_questions(
     handled_types = set()
     for f in findings:
         ftype = f.get("type")
-        if ftype in handled_types:
+        claim = str(f.get("claim") or "")
+        finding_key = (ftype, claim)
+        if finding_key in handled_types:
             continue
-        handled_types.add(ftype)
+        handled_types.add(finding_key)
         if ftype in ("skill_without_context",):
             pool.append(
                 _q(
-                    "One of your skills is listed without supporting context. Pick it and describe where and how you actually used it.",
+                    f"Your resume lists “{claim or 'a skill without context'}”. Describe where and how you used this skill, and what you personally built.",
                     "verification",
                     difficulty,
                     source_claim=str(f.get("claim") or "Skill without context"),
                     concepts=["context", "application", "example", "outcome"],
+                    skill=next((s for s in skills if s.lower() in claim.lower()), None),
                     follow_ups=["Can you point to a specific project or task?"],
                 )
             )
@@ -471,6 +475,12 @@ def generate_questions(
                     follow_ups=["What did a typical week look like?"],
                 )
             )
+        elif ftype == "date_order":
+            pool.append(_q(
+                f"Your resume includes “{claim}”. Please clarify the start and end dates and the work you performed during that period.",
+                "verification", difficulty, source_claim=claim,
+                concepts=["timeline", "responsibilities", "clarity"],
+            ))
         elif ftype in ("missing_projects",):
             pool.append(
                 _q(
@@ -505,6 +515,16 @@ def generate_questions(
     )
 
     # 7) Education question (if present) ---------------------------------
+    for field, qtype, prompt in [
+        ("certifications", "certification", "What did you learn, and how have you applied that knowledge?"),
+        ("achievements", "achievement", "What was your contribution, and what evidence supports the result?"),
+        ("responsibilities", "experience", "Explain your personal responsibility, the decisions you made and the outcome."),
+    ]:
+        for item in (profile.get(field) or [])[:2]:
+            claim = str(item.get("text") or "").strip()[:180]
+            if claim:
+                pool.append(_q(f"Your resume mentions “{claim}”. {prompt}", qtype, difficulty,
+                               claim, ["personal contribution", "application", "outcome", "example"]))
     if education:
         edu_text = (education[0].get("text") or "")[:120]
         pool.append(
@@ -562,6 +582,7 @@ def generate_questions(
     take(lambda q: q["type"] == "skill_application", 1)
     take(lambda q: q["type"] in ("project", "architecture"), 1)
     take(lambda q: q["type"] == "verification", 1)
+    take(lambda q: q["type"] == "experience", 1)
     take(lambda q: q["type"] == "scenario", 1)
     take(lambda q: q["type"] == "fundamentals", 2)
     take(lambda q: q["type"] in ("project", "architecture"), 2)
@@ -579,6 +600,32 @@ def generate_questions(
         selected_ids.add(q["id"])
         seen.add(q["text"])
 
+    if interview_type:
+        # Live interview types reuse the same bank and actual resume sources.
+        intro = _q("Please introduce yourself and explain how your background relates to the role you want.",
+                   "introduction", difficulty, profile.get("summary") or "",
+                   ["background", "relevance", "goals"])
+        people = [
+            _q("What kind of role are you looking for, and why does it interest you?", "hr", difficulty,
+               profile.get("summary") or "", ["motivation", "relevance", "goals"]),
+            _q("Tell me about a time you faced a difficult problem. What did you do, and what did you learn?",
+               "behavioral", difficulty, "", ["challenge", "approach", "outcome", "learning"]),
+            _q("Describe a disagreement while working with others. How did you communicate and reach a decision?",
+               "behavioral", difficulty, "", ["context", "communication", "collaboration", "outcome"]),
+            _q("How do you prioritize work when several tasks have the same deadline? Give an example.",
+               "hr", difficulty, "", ["prioritization", "constraints", "communication", "example"]),
+        ]
+        choices = {
+            "HR": people + [q for q in pool if q["type"] in ("certification", "achievement")],
+            "Behavioral": [q for q in people if q["type"] == "behavioral"] + people[:1],
+            "Technical": [q for q in pool if q["type"] in ("fundamentals", "skill_application", "scenario", "verification")],
+            "Project-based": [q for q in pool if q["type"] in ("project", "architecture", "experience", "verification")],
+            "Mixed": selected[:3] + [q for q in pool if q["type"] in ("certification", "achievement")][:1] + people[:2] + selected[3:],
+        }.get(interview_type, selected)
+        selected = [intro]
+        for q in choices:
+            if q["text"] not in {x["text"] for x in selected} and len(selected) < count:
+                selected.append(q)
     selected = selected[:count]
 
     return {

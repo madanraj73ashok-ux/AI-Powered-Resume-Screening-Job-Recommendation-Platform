@@ -1,6 +1,7 @@
 import { createApp } from './app';
 import { env, assertEnv } from './config/env';
 import { connectDB, disconnectDB } from './db/connection';
+import { attachLiveAudio } from './services/liveAudio';
 
 async function main(): Promise<void> {
   assertEnv();
@@ -14,9 +15,11 @@ async function main(): Promise<void> {
     console.log(`[verihire] API listening on http://localhost:${env.port}/api/health`);
     console.log(`[verihire] CORS origin: ${env.frontendOrigin}`);
   });
+  const closeAudio = attachLiveAudio(server);
 
   const shutdown = async (signal: string) => {
     console.log(`\n${signal} received, shutting down...`);
+    closeAudio();
     server.close(async () => {
       await disconnectDB();
       process.exit(0);

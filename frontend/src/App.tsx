@@ -10,6 +10,7 @@ import ResumeAnalysisPage from './pages/ResumeAnalysis';
 import InterviewStartPage from './pages/InterviewStart';
 import InterviewSessionPage from './pages/InterviewSession';
 import InterviewResultsPage from './pages/InterviewResults';
+import LiveInterviewPage from './pages/LiveInterview';
 import SettingsPage from './pages/Settings';
 import NotFoundPage from './pages/NotFound';
 
@@ -105,6 +106,10 @@ export default function App() {
             <InterviewResultsPage />
           </CandidateOnly>
         }
+      />
+      <Route
+        path="/interview/live/:id"
+        element={<CandidateOnly><LiveInterviewPage /></CandidateOnly>}
       />
       <Route
         path="/interview/:id"

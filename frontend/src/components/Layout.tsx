@@ -28,7 +28,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/resume/upload', label: 'Upload Resume', roles: ['candidate'], icon: UploadIcon },
   { to: '/resume', label: 'Resume Analysis', roles: ['candidate'], icon: AnalysisIcon },
   { to: '/assessment', label: 'Assessment Test', roles: ['candidate'], icon: AnalysisIcon },
-  { to: '/interview', label: 'AI Interview', roles: ['candidate'], icon: InterviewIcon },
+  { to: '/interview', label: 'AI Interview', roles: ['candidate'], icon: InterviewIcon, end: true },
   { to: '/interview/results', label: 'Interview Results', roles: ['candidate'], icon: ResultsIcon },
   { to: '/profile', label: 'My Profile', roles: ['candidate', 'recruiter', 'admin'], icon: ProfileIcon },
   { to: '/settings', label: 'Settings', roles: ['candidate', 'recruiter', 'admin'], icon: SettingsIcon },
@@ -110,6 +110,14 @@ export function Layout({ children }: { children: ReactNode }) {
             Sign out
           </button>
         </div>
+        <nav aria-label="Mobile navigation" className="flex gap-2 overflow-x-auto border-b border-slate-200 bg-white px-4 py-2 md:hidden">
+          {items.map((item) => (
+            <NavLink key={item.to} to={item.to} end={item.end}
+              className={({ isActive }) => `shrink-0 rounded px-3 py-2 text-sm ${isActive ? 'bg-navy-100 font-semibold text-navy-900' : 'text-slate-600'}`}>
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
         <div className="mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-8">{children}</div>
       </div>
     </div>

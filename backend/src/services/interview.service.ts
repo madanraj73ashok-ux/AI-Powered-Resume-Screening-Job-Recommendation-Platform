@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import {
   InterviewSession,
   InterviewSessionDoc,
@@ -14,11 +15,18 @@ import {
   EngineEvaluation,
 } from './aiEngine';
 import { getResumeOwned } from './resume.service';
+import { InterviewEvent } from '../models/InterviewEvent';
 
 export const startInterviewSchema = z.object({
   resumeId: z.string().min(1, 'A resume is required'),
   difficulty: z.enum(['Beginner', 'Intermediate', 'Advanced']).default('Intermediate'),
   questionCount: z.coerce.number().int().min(3).max(12).default(8),
+  mode: z.enum(['text', 'voice']).default('text'),
+  interviewType: z.enum(['HR', 'Technical', 'Project-based', 'Behavioral', 'Mixed']).default('Mixed'),
+  targetDurationMinutes: z.union([z.literal(10), z.literal(20), z.literal(30)]).default(20),
+  voice: z.enum(['lessac', 'custom']).default('lessac'),
+  speakingRate: z.number().min(0.7).max(1.3).default(1),
+  adaptiveDifficulty: z.boolean().default(true),
 });
 
 export const submitAnswerSchema = z.object({
@@ -42,7 +50,9 @@ function engineError(err: unknown): never {
 
 export async function startInterview(
   userId: string,
-  input: { resumeId: string; difficulty: 'Beginner' | 'Intermediate' | 'Advanced'; questionCount: number }
+  input: { resumeId: string; difficulty: 'Beginner' | 'Intermediate' | 'Advanced'; questionCount: number;
+    mode?: 'text' | 'voice'; interviewType?: InterviewSessionDoc['interviewType']; targetDurationMinutes?: number;
+    voice?: string; speakingRate?: number; adaptiveDifficulty?: boolean }
 ): Promise<InterviewSessionDoc> {
   const resume = await getResumeOwned(input.resumeId, userId);
   if (!resume.fullText || !resume.fullText.trim()) {
@@ -60,6 +70,7 @@ export async function startInterview(
       difficulty: input.difficulty,
       count: input.questionCount,
       seed: `${resume._id.toString()}:${input.difficulty}`,
+      ...(input.mode === 'voice' ? { interviewType: input.interviewType ?? 'Mixed' } : {}),
     });
   } catch (err) {
     engineError(err);
@@ -92,6 +103,11 @@ export async function startInterview(
     totalQuestions: questions.length,
     currentIndex: 0,
     generator: generation.generatedBy,
+    mode: input.mode ?? 'text', interviewType: input.interviewType ?? 'Mixed',
+    targetDurationMinutes: input.targetDurationMinutes ?? 20, voice: input.voice ?? 'lessac',
+    speakingRate: input.speakingRate ?? 1, adaptiveDifficulty: input.adaptiveDifficulty ?? true,
+    ...(input.mode === 'voice' ? { resumeSnapshot: { candidateName: String(resume.profile.name ?? 'Candidate'),
+      resumeName: resume.originalName, summary: String(resume.profile.summary ?? '') } } : {}),
   });
 }
 
@@ -177,7 +193,7 @@ export async function submitAnswer(
     evaluation = await evaluateAnswer({
       question: current as unknown as Record<string, unknown>,
       answer: input.answer,
-      difficulty: session.difficulty,
+      difficulty: current.difficulty,
     });
   } catch (err) {
     engineError(err);
@@ -220,7 +236,12 @@ export async function submitAnswer(
       expectedConcepts: evaluation.missingConcepts.length
         ? [evaluation.missingConcepts[0]]
         : ['example'],
-      rubric: current.rubric,
+      rubric: {
+        technicalAccuracy: `40%: Explain ${evaluation.missingConcepts[0] ?? 'the example'} accurately.`,
+        completeness: '25%: Address the specific gap raised by this follow-up.',
+        practicalExamples: '20%: Give a concrete example from your work.',
+        understanding: '15%: Explain why your approach works and its limitations.',
+      },
       maxMarks: FOLLOW_UP_MAX_MARKS,
       followUpTemplates: [],
       isFollowUp: true,
@@ -231,7 +252,27 @@ export async function submitAnswer(
 
   session.currentIndex += 1;
   session.totalQuestions = session.questions.length;
-  await session.save();
+  if (session.mode === 'voice') {
+    session.live = { draftTranscript: '', reviewRequired: true };
+    // Change the actual next bank question, not just its difficulty label.
+    const next = session.questions[session.currentIndex];
+    if (session.adaptiveDifficulty && next && !next.isFollowUp && !current.isFollowUp) {
+      const levels = ['Beginner', 'Intermediate', 'Advanced'] as const;
+      const index = levels.indexOf(current.difficulty);
+      const target = levels[Math.max(0, Math.min(2, index + (evaluation.percentage >= 85 ? 1 : evaluation.percentage < 35 ? -1 : 0)))];
+      if (target !== next.difficulty) {
+        try {
+          const resume = await getResumeOwned(session.resume.toString(), userId);
+          const generated = await generateQuestions({ profile: resume.profile, findings: resume.analysis?.findings ?? [],
+            difficulty: target, count: 12, seed: `${id}:${session.currentIndex}`, interviewType: session.interviewType });
+          const asked = new Set(session.questions.slice(0, session.currentIndex).map(q => q.text));
+          const candidate = generated.questions.find(q => q.type !== 'introduction' && q.type === next.type && (!next.skill || q.skill === next.skill) && !asked.has(q.text));
+          if (candidate) session.questions[session.currentIndex] = { ...candidate, isFollowUp: false, followUpTemplates: candidate.followUpTemplates ?? [] };
+        } catch { /* Keep the saved bank question if adaptation is unavailable. */ }
+      }
+    }
+  }
+  await saveProgress(session);
 
   const nextQuestion = session.questions[session.currentIndex] ?? null;
   return {
@@ -244,6 +285,17 @@ export async function submitAnswer(
 
 function strengthText(skill: string, pct: number): string {
   return `Strong technical evidence in ${skill} (${pct}% on this interview).`;
+}
+
+async function saveProgress(session: InterviewSessionDoc): Promise<void> {
+  try {
+    await session.save();
+  } catch (err) {
+    if (err instanceof mongoose.Error.VersionError) {
+      throw new ApiError(409, 'This interview changed in another request. Reload to continue from the saved progress.');
+    }
+    throw err;
+  }
 }
 
 function improvementText(skill: string, pct: number): string {
@@ -323,12 +375,18 @@ export async function completeInterview(
     .map((s) => strengthText(s.skill, s.percentage));
 
   const improvements = skillScores
-    .filter((s) => s.percentage < 50)
+    .filter((s) => s.percentage < 70)
     .slice(0, 5)
     .map((s) => improvementText(s.skill, s.percentage));
+  for (const q of session.questions) {
+    const answer = answersByQuestion.get(q.id);
+    if (answer && answer.percentage < 50 && improvements.length < 8) {
+      improvements.push(`Review ${q.skill ?? q.type.replace('_', ' ')}: “${q.text}” (${answer.percentage}%). ${answer.missingConcepts.length ? `Cover ${answer.missingConcepts.join(', ')} with a concrete example.` : 'Expand the explanation and show your reasoning.'}`);
+    }
+  }
 
   const missingConcepts = Array.from(
-    new Set(session.answers.flatMap((a) => a.missingConcepts))
+    new Set(session.questions.flatMap((q) => answersByQuestion.get(q.id)?.missingConcepts ?? q.expectedConcepts))
   ).slice(0, 10);
 
   const recommendations = missingConcepts
@@ -343,7 +401,18 @@ export async function completeInterview(
     );
   }
 
-  const result = await InterviewResult.create({
+  // Freeze the session before publishing the report. Optimistic concurrency
+  // prevents an answer racing completion from changing the report's inputs.
+  if (session.status !== 'completed') {
+    session.status = 'completed';
+    session.completedAt = new Date();
+    await saveProgress(session);
+  }
+  const presenceEvents = session.mode === 'voice' ? await InterviewEvent.find({ session: id, user: userId,
+    type: { $in: ['camera_on', 'camera_off', 'camera_unavailable', 'face_visible', 'no_face', 'multiple_faces', 'detector_unavailable'] } })
+    .sort({ at: 1 }).select('type at faceCount -_id').limit(500).lean() : [];
+  // Upsert also repairs an interrupted completion (session saved, report not yet saved).
+  const result = await InterviewResult.findOneAndUpdate({ session: session._id, user: userId }, { $setOnInsert: {
     user: userId,
     session: session._id,
     resume: session.resume,
@@ -361,11 +430,25 @@ export async function completeInterview(
     missingConcepts,
     recommendations,
     summary: `You answered ${session.answers.length} of ${session.questions.length} questions at ${session.difficulty} level and scored ${percentage}%. This is a rubric-based technical assessment of your answers; it does not measure personality, honesty or intelligence.`,
-  });
-
-  session.status = 'completed';
-  session.completedAt = new Date();
-  await session.save();
+    ...(session.mode === 'voice' ? { liveReport: {
+      candidateName: session.resumeSnapshot?.candidateName, resumeName: session.resumeSnapshot?.resumeName,
+      interviewDate: session.startedAt,
+      presenceEvents,
+      interviewType: session.interviewType, mode: session.mode, targetDurationMinutes: session.targetDurationMinutes,
+      durationSeconds: Math.round(((session.completedAt ?? new Date()).getTime() - session.startedAt.getTime()) / 1000),
+      communicationFeedback: `${session.answers.filter(a => /\b(for example|for instance|such as|specifically)\b/i.test(a.text)).length} of ${session.answers.length} transcripts contain explicit example markers; ${session.answers.filter(a => /\b(because|therefore|trade.off|instead|so that)\b/i.test(a.text)).length} contain reasoning markers. These are low-confidence textual indicators, not a communication-competence score. No accent, speaking-speed, emotion or appearance score is computed. Recognition errors can affect these observations.`,
+      answerObservations: session.questions.flatMap(q => {
+        const a = answersByQuestion.get(q.id);
+        return a ? [{ questionId: q.id, kind: q.type,
+          observation: `${a.matchedConcepts.length} of ${q.expectedConcepts.length} expected concepts matched. ${a.missingConcepts.length ? `Review: ${a.missingConcepts.join(', ')}.` : 'All expected concepts matched; correctness still requires human review.'}`,
+          evidence: a.text.slice(0, 350) }] : [];
+      }),
+      resumeConsistencyFindings: session.questions.filter(q => q.type === 'verification').map(q => ({ claim: q.sourceClaim, question: q.text,
+        answer: answersByQuestion.get(q.id)?.text ?? null, status: 'Human review required; no external verification.' })),
+      humanReviewRequired: true,
+      limitations: 'Local deterministic concept matching estimates content coverage; it cannot verify factual accuracy, genuine understanding or identity. Audio/video are not retained. Human review is required before consequential hiring decisions.',
+    } } : {}),
+  } }, { upsert: true, new: true, runValidators: true });
 
   return { session, result };
 }

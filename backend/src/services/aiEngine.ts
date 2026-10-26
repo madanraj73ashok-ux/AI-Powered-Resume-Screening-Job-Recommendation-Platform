@@ -17,7 +17,7 @@ export class AiEngineError extends Error {
 
 const TIMEOUT_MS = 45000;
 
-async function engineFetch(path: string, init?: RequestInit): Promise<Response> {
+export async function engineFetch(path: string, init?: RequestInit): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
@@ -119,6 +119,7 @@ export async function generateQuestions(input: {
   difficulty: string;
   count: number;
   seed: string;
+  interviewType?: string;
 }): Promise<EngineGeneration> {
   const res = await engineFetch('/generate-questions', {
     method: 'POST',

@@ -46,6 +46,8 @@ export default function InterviewSessionPage() {
     try {
       const data = await getInterview(id);
       if (data.session.status === 'completed') {
+        // Idempotently repair report creation if a prior completion was interrupted.
+        await completeInterview(id);
         navigate(`/interview/results/${id}`, { replace: true });
         return;
       }
@@ -53,7 +55,7 @@ export default function InterviewSessionPage() {
       setProgress(data.progress);
       setQuestion(data.progress.currentQuestion);
       setEvaluation(null);
-      setAnswer('');
+      setAnswer(data.session.live?.draftQuestionId === data.progress.currentQuestion?.id ? data.session.live?.draftTranscript ?? '' : '');
       setIsLast(!data.progress.currentQuestion);
     } catch (err) {
       setError(apiErrorMessage(err));
@@ -150,14 +152,14 @@ export default function InterviewSessionPage() {
 
       <Card>
         <div className="mb-2 flex items-center justify-between text-sm text-slate-600">
-          <span>
+          <span aria-live="polite">
             Question {questionNumber} of {progress.total}
           </span>
           <span>
             {progress.answered} answered · {progress.percentage}%
           </span>
         </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+        <div role="progressbar" aria-label="Interview progress" aria-valuenow={progress.percentage} aria-valuemin={0} aria-valuemax={100} className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
           <div
             className="h-2 rounded-full bg-navy-600 transition-all"
             style={{ width: `${progress.percentage}%` }}
@@ -205,6 +207,16 @@ export default function InterviewSessionPage() {
             Scored on technical accuracy, completeness, practical examples and demonstrated
             understanding. No personality or honesty inference is made.
           </p>
+          {question.rubric && session.mode !== 'voice' ? (
+            <details className="mt-3 text-sm text-slate-600">
+              <summary className="cursor-pointer font-medium">Scoring rubric for this question</summary>
+              <ul className="mt-2 space-y-1">
+                {Object.entries(question.rubric).map(([key, guidance]) => (
+                  <li key={key}><strong>{RUBRIC_LABELS[key] ?? key}:</strong> {guidance}</li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
           <div className="mt-4">
             <label className="label" htmlFor="answer">
               Your answer
@@ -214,12 +226,13 @@ export default function InterviewSessionPage() {
               className="input min-h-[160px]"
               placeholder="Explain your reasoning, give a concrete example, and mention trade-offs where relevant…"
               value={answer}
+              maxLength={8000}
               onChange={(e) => setAnswer(e.target.value)}
               disabled={submitting}
             />
             <div className="mt-1 flex justify-between text-xs text-slate-500">
               <span>{answer.trim().split(/\s+/).filter(Boolean).length} words</span>
-              <span>Answers are saved in your session</span>
+              <span>{answer.length}/8000 characters · Saved on submit</span>
             </div>
           </div>
           <div className="mt-4 flex justify-end">
@@ -280,10 +293,10 @@ export default function InterviewSessionPage() {
             ))}
           </div>
 
-          {evaluation.suggestedFollowUp ? (
+          {nextQuestion?.isFollowUp ? (
             <p className="mt-3 rounded-lg bg-navy-50 px-3 py-2 text-xs text-navy-800">
               <span className="font-semibold">Follow-up prepared:</span>{' '}
-              {evaluation.suggestedFollowUp}
+              {nextQuestion.text}
             </p>
           ) : null}
 
@@ -299,12 +312,28 @@ export default function InterviewSessionPage() {
         </Card>
       ) : null}
 
+      {progress.answered > 0 && !confirmFinish && (!evaluation || !isLast) ? (
+        <Card>
+          <p className="mb-3 text-sm text-slate-600">
+            {isLast ? 'All answers are saved. Finish to generate your report.' :
+              'You can finish early. Unanswered questions receive zero marks.'}
+          </p>
+          <Button variant="secondary" onClick={() => setConfirmFinish(true)} disabled={submitting || finishing}>
+            Finish interview
+          </Button>
+        </Card>
+      ) : null}
+
       {confirmFinish ? (
         <Card>
           <SectionTitle
             title="Finish the interview?"
             subtitle="Your answers are already saved. Finishing generates your result dashboard."
           />
+          <p className="mb-4 text-sm text-slate-600">
+            {progress.answered} of {progress.total} questions answered.
+            {progress.answered < progress.total ? ' Unanswered questions receive zero marks. Any unsubmitted answer will be discarded.' : ''}
+          </p>
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setConfirmFinish(false)} disabled={finishing}>
               Cancel

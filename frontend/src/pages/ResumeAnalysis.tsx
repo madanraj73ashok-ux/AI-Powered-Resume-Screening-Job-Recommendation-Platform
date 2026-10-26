@@ -404,6 +404,15 @@ export default function ResumeAnalysisPage() {
         </Card>
       </div>
 
+      {[
+        { title: 'Achievements', entries: profile.achievements ?? [] },
+        { title: 'Claimed responsibilities', entries: profile.responsibilities ?? [] },
+      ].filter(group => group.entries.length > 0).map(group => <Card key={group.title}>
+        <SectionTitle title={group.title} subtitle="Literal resume statements with source evidence" />
+        <ul className="space-y-3 text-sm text-slate-700">{group.entries.map((item, index) => <li key={index}>
+          {item.text}<Evidence evidence={item.evidence} />
+        </li>)}</ul>
+      </Card>)}
       <Card>
         <SectionTitle
           title="Claim-level findings"

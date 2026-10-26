@@ -65,6 +65,45 @@ def test_generation_is_deterministic_for_same_seed():
     a = generate_questions(PROFILE, FINDINGS, "Intermediate", 6, seed="same")
     b = generate_questions(PROFILE, FINDINGS, "Intermediate", 6, seed="same")
     assert [q["text"] for q in a["questions"]] == [q["text"] for q in b["questions"]]
+    assert a == b
+
+
+def test_rubrics_are_question_specific_and_cover_resume_sections():
+    result = generate_questions(PROFILE, FINDINGS, "Intermediate", 8, seed="rubrics")
+    questions = result["questions"]
+    assert {"project", "experience", "verification"} <= {q["type"] for q in questions}
+    for question in questions:
+        for concept in question["expectedConcepts"]:
+            assert concept.lower() in question["rubric"]["technicalAccuracy"].lower()
+    assert len({q["rubric"]["technicalAccuracy"] for q in questions}) > 1
+
+
+def test_findings_target_the_actual_claim_and_advanced_projects_test_architecture():
+    findings = [{"type": "skill_without_context", "claim": "Skill claim: Control Systems"}]
+    questions = generate_questions(PROFILE, findings, "Advanced", 8)["questions"]
+    verification = next(q for q in questions if q["type"] == "verification")
+    assert "Control Systems" in verification["text"]
+    assert verification["sourceClaim"] == findings[0]["claim"]
+    assert verification["skill"] == "Control Systems"
+    architecture = next(q for q in questions if q["type"] == "architecture")
+    assert "warehouse robots" in architecture["text"]
+    assert "ten times" in architecture["text"]
+
+
+def test_sparse_profile_falls_back_without_inventing_resume_claims():
+    result = generate_questions({"summary": "Student"}, [], "Beginner", 8)
+    assert 0 < result["count"] <= 8
+    assert all(not q["sourceClaim"] for q in result["questions"])
+    assert "no generative model" in result["generatedBy"]
+
+
+def test_scoring_is_deterministic_and_bounded_for_all_levels():
+    for difficulty in ("Beginner", "Intermediate", "Advanced"):
+        for answer in ("", "Unrelated words about the weather.", GOOD_ANSWER):
+            result = evaluate_answer(QUESTION, answer, difficulty)
+            assert result == evaluate_answer(QUESTION, answer, difficulty)
+            assert 0 <= result["percentage"] <= 100
+            assert 0 <= result["marksAwarded"] <= QUESTION["maxMarks"]
 
 
 def test_beginner_generation_is_gentler_than_advanced():

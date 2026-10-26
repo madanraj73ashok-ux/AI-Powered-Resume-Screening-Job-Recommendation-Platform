@@ -92,11 +92,12 @@ function ResultList() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-navy-900">
-                      {s.difficulty} interview
+                      {s.difficulty} {s.mode === 'voice' ? `${s.interviewType ?? 'Mixed'} voice ` : ''}interview
                     </span>
                     <Badge color={difficultyBadgeColor(s.difficulty)}>{s.difficulty}</Badge>
                   </div>
                   <div className="text-xs text-slate-500">
+                    {s.candidateName ? `${s.candidateName} · ${s.resumeName} · ` : ''}
                     {s.answered}/{s.totalQuestions} answered ·{' '}
                     {formatDate(s.completedAt ?? s.startedAt)}
                   </div>
@@ -218,6 +219,26 @@ function ResultDetail({ id }: { id: string }) {
         </Card>
       </div>
 
+      {result.liveReport && <Card>
+        <SectionTitle title="Voice interview review" subtitle={`${result.liveReport.interviewType} · ${Math.floor(result.liveReport.durationSeconds / 60)}m ${result.liveReport.durationSeconds % 60}s elapsed · ${result.liveReport.targetDurationMinutes} minute target`} />
+        <p className="mb-3 text-sm font-medium text-navy-900">{result.liveReport.candidateName} · {result.liveReport.resumeName}</p>
+        <p className="text-sm text-slate-700">{result.liveReport.communicationFeedback}</p>
+        <p className="mt-3 text-sm font-semibold text-amber-800">Human review is required before using these estimates for hiring decisions.</p>
+        <p className="mt-2 text-xs text-slate-500">{result.liveReport.limitations}</p>
+        {Boolean(result.liveReport.presenceEvents?.length) && <details className="mt-4 text-sm text-slate-600">
+          <summary className="cursor-pointer font-medium">Optional camera-presence events</summary>
+          <p className="my-2 text-xs">Advisory events only. They do not establish identity, attention or honesty and never change the score.</p>
+          <ul className="space-y-1">{result.liveReport.presenceEvents?.map((event, index) => <li key={index}>
+            {new Date(event.at).toLocaleTimeString()} · {event.type.replaceAll('_', ' ')}{event.faceCount !== undefined ? ` · ${event.faceCount} face(s)` : ''}
+          </li>)}</ul>
+        </details>}
+        {result.liveReport.resumeConsistencyFindings.length > 0 && <div className="mt-4">
+          <h3 className="font-semibold text-navy-900">Resume consistency review</h3>
+          <ul className="mt-2 space-y-2 text-sm text-slate-600">{result.liveReport.resumeConsistencyFindings.map((finding, index) => <li key={index}>
+            <strong>{finding.claim}</strong>: {finding.status}
+          </li>)}</ul>
+        </div>}
+      </Card>}
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <SectionTitle title="Strengths" />

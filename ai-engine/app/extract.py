@@ -31,11 +31,12 @@ SECTION_KEYWORDS = {
     "summary": ["summary", "professional summary", "profile", "objective", "about"],
     "education": ["education", "academic background", "qualifications"],
     "skills": ["skills", "technical skills", "core competencies", "technologies"],
-    "experience": ["work experience", "experience", "employment", "employment history", "work history"],
-    "projects": ["projects", "personal projects", "key projects", "project experience"],
-    "certifications": ["certifications", "certificates", "licenses"],
+    "experience": ["work experience", "experience", "employment", "employment history", "work history", "internships", "internship & training"],
+    "projects": ["project", "projects", "academic projects", "personal projects", "key projects", "project experience"],
+    "certifications": ["certifications", "certificates", "licenses", "certifications & achievements"],
     "achievements": ["achievements", "accomplishments", "awards"],
     "references": ["references"],
+    "other": ["volunteer", "volunteering", "career highlights"],
 }
 
 
@@ -86,7 +87,7 @@ def _section_ranges(lines: List[str]) -> dict:
     for i, (start, name) in enumerate(starts):
         end = starts[i + 1][0] if i + 1 < len(starts) else len(lines)
         if name not in ranges:  # keep the first occurrence
-            ranges[name] = (start, end)
+            ranges[name] = (start + 1, end)
     return ranges
 
 
@@ -163,6 +164,13 @@ def parse_profile(pages: List[dict]) -> dict:
                     "evidence": {"page": page, "quote": text[:160]},
                 }
             )
+    # Some two-column PDFs merge section headings. Recover literal degree lines
+    # rather than declaring education absent; never synthesize an institution.
+    if not education:
+        for text, page in lines:
+            if re.search(r"bachelor of|master of|diploma in|b\.?\s?tech\b", text, re.I):
+                education.append({"text": text, "degree": text, "dates": None,
+                                  "evidence": {"page": page, "quote": text[:160]}})
 
     # --- experience (lines with date ranges or title/company hints)
     experience = []
@@ -197,7 +205,8 @@ def parse_profile(pages: List[dict]) -> dict:
     # --- skills explicitly listed in the skills section (e.g. "Java - Expert; SQL")
     section_skills = []
     for text, page in section_lines("skills"):
-        parts = re.split(r"[;·•]|,(?=\s*[A-Z])", text)
+        cleaned = re.sub(r"^(technical skills|soft skills|tools|programming|design)\s*:?\s*", "", text, flags=re.I)
+        parts = re.split(r"[;·•,]", cleaned)
         for part in parts:
             part = part.strip(" -–—•\t")
             if not part:
@@ -227,7 +236,9 @@ def parse_profile(pages: List[dict]) -> dict:
 
     from .skills import detect_skills  # local import to avoid cycle
 
-    detected = detect_skills(full_text)
+    # A single-letter name initial must not become a programming-language claim.
+    skill_text = full_text.replace(name, "") if name else full_text
+    detected = detect_skills(skill_text)
 
     def _mk_evidence(snippet):
         """Convert a raw evidence string into {page, quote} using page texts."""
@@ -260,6 +271,11 @@ def parse_profile(pages: List[dict]) -> dict:
         "experience": experience,
         "projects": projects,
         "certifications": certifications,
+        "achievements": [{"text": text, "evidence": {"page": page, "quote": text[:160]}}
+                         for text, page in section_lines("achievements") if len(text) >= 4],
+        "responsibilities": [{"text": text, "evidence": {"page": page, "quote": text[:160]}}
+                             for text, page in section_lines("experience")
+                             if re.search(r"developed|built|conducted|managed|led|implemented|designed|responsible", text, re.I)],
         "extractionErrors": errors,
         "charCount": len(full_text),
     }

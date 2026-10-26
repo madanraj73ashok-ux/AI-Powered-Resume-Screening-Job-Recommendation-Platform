@@ -1,5 +1,14 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface IAssessmentQuestion {
+  id: string;
+  type: string;
+  question: string;
+  options?: string[];
+  answer?: string;
+  maxMarks: number;
+}
+
 export interface IAssessment extends Document {
   user: mongoose.Types.ObjectId;
   resume: mongoose.Types.ObjectId;
@@ -7,6 +16,8 @@ export interface IAssessment extends Document {
   questionCount: number;
   answeredCount: number;
   score: number; // percentage score (0-100)
+  questions: IAssessmentQuestion[];
+  currentIndex: number;
   answers: IAssessmentAnswer[];
   takenAt: Date;
   completedAt?: Date;
@@ -54,6 +65,17 @@ const AssessmentSchema: Schema = new Schema({
   questionCount: { type: Number, required: true, min: 1 },
   answeredCount: { type: Number, default: 0 },
   score: { type: Number, min: 0, max: 100, default: 0 },
+  currentIndex: { type: Number, default: 0 },
+  questions: [
+    {
+      id: { type: String, required: true },
+      type: { type: String, required: true },
+      question: { type: String, required: true },
+      options: { type: [String], default: [] },
+      answer: { type: String },
+      maxMarks: { type: Number, default: 10 },
+    },
+  ],
   answers: [
     {
       questionId: { type: String, required: true },
@@ -83,7 +105,7 @@ const AssessmentSchema: Schema = new Schema({
 AssessmentSchema.methods.calculateScore = function (): number {
   if (this.answers.length === 0) return 0;
 
-  const correctAnswers = this.answers.filter((a) => a.isCorrect).length;
+  const correctAnswers = this.answers.filter((a: IAssessmentAnswer) => a.isCorrect).length;
   const totalQuestions = this.answers.length;
   const percentage = Math.round((correctAnswers / totalQuestions) * 100);
   this.score = Math.min(percentage, 100);

@@ -139,14 +139,16 @@ def analyze(profile: dict, full_text: str) -> dict:
             window = lowered[max(0, pos - 80): pos + 80]
             if "expert" not in window or window.count(skill.lower()) > 1:
                 outside += 1
-        if len(occurrences) <= 1:
+        contextual = any(alias_pattern.search(str(item.get("text", "")).lower())
+                         for item in projects + experience)
+        if len(occurrences) <= 1 and not contextual:
             findings.append(_finding(
                 type="skill_without_context",
                 claim=f"Skill claim: {skill}",
                 evidence=s.get("evidence"),
                 method="dictionary match with context check",
-                finding=f"'{skill}' appears only in the skills list, without supporting context.",
-                reason="A skill mentioned once, only in a list, cannot be assessed from the document alone.",
+                finding=f"'{skill}' has at most one direct mention and needs clearer supporting evidence.",
+                reason="No matching project or role context was detected. This can be a parsing limitation; review the source document.",
                 suggestedFollowUp=f"Where and how have you used {skill}? Please describe a concrete example.",
                 status=STATUS_EVIDENCE_REQUESTED,
                 severity="warning",
@@ -158,7 +160,7 @@ def analyze(profile: dict, full_text: str) -> dict:
                 evidence=s.get("evidence"),
                 method="dictionary match with context check",
                 finding=f"'{skill}' is supported by {len(occurrences)} mentions in the resume text.",
-                reason="Multiple mentions in different sections support this claim (document-level support only, not external verification).",
+                reason="A project/role mention or repeated text supports this claim within the document only, not by external verification.",
                 suggestedFollowUp=f"Which aspect of {skill} are you strongest in?",
                 status=STATUS_VERIFIED_RECORDED,
                 severity="info",

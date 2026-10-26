@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth, requireRole } from '../middleware/auth';
+import liveRoutes from './liveInterview.routes';
 import {
   validateStart,
   validateAnswer,
@@ -14,6 +15,7 @@ import {
 const router = Router();
 
 router.use(requireAuth, requireRole('candidate'));
+router.use(liveRoutes);
 
 router.post('/', validateStart, startHandler);
 router.get('/', listHandler);

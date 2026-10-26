@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeAll } from 'vitest';
 import request from 'supertest';
 import path from 'path';
 import { createApp } from '../app';
+import { InterviewSession } from '../models/InterviewSession';
+import { InterviewResult } from '../models/InterviewResult';
+import { evaluateAnswer, AiEngineError } from '../services/aiEngine';
 
 // Hermetic interview tests: engine mocked with deterministic behaviour.
 vi.mock('../services/aiEngine', () => {
@@ -272,6 +275,53 @@ describe('answering, follow-ups and resuming', () => {
 });
 
 describe('completion and results', () => {
+  it('does not duplicate answers on concurrent submissions', async () => {
+    const agent = await candidateAgent('concurrent');
+    const ownResumeId = await uploadResume(agent);
+    const started = await agent.post('/api/interviews').send({ resumeId: ownResumeId });
+    const id = started.body.session.id;
+    const responses = await Promise.all([1, 2].map(() => agent.post(`/api/interviews/${id}/answers`)
+      .send({ questionId: 'QTEST1', answer: STRONG_ANSWER })));
+    expect(responses.filter((r) => r.status === 200)).toHaveLength(1);
+    expect([400, 409]).toContain(responses.find((r) => r.status !== 200)?.status);
+    const stored = await InterviewSession.findById(id);
+    expect(stored?.answers).toHaveLength(1);
+    expect(stored?.currentIndex).toBe(1);
+  });
+
+  it('repairs interrupted report creation and keeps completion idempotent', async () => {
+    const agent = await candidateAgent('repair');
+    const ownResumeId = await uploadResume(agent);
+    const started = await agent.post('/api/interviews').send({ resumeId: ownResumeId });
+    const id = started.body.session.id;
+    await agent.post(`/api/interviews/${id}/answers`).send({ questionId: 'QTEST1', answer: STRONG_ANSWER });
+    const stored = await InterviewSession.findById(id);
+    stored!.status = 'completed';
+    stored!.completedAt = new Date();
+    await stored!.save();
+    expect(await InterviewResult.countDocuments({ session: id })).toBe(0);
+    const repaired = await agent.post(`/api/interviews/${id}/complete`);
+    expect(repaired.status).toBe(200);
+    const again = await agent.post(`/api/interviews/${id}/complete`);
+    expect(again.body.result.id).toBe(repaired.body.result.id);
+    expect(await InterviewResult.countDocuments({ session: id })).toBe(1);
+  });
+
+  it('validates answer length and preserves progress when the engine fails', async () => {
+    const agent = await candidateAgent('failure');
+    const ownResumeId = await uploadResume(agent);
+    const started = await agent.post('/api/interviews').send({ resumeId: ownResumeId });
+    const id = started.body.session.id;
+    for (const answer of ['   ', 'a'.repeat(8001)]) {
+      expect((await agent.post(`/api/interviews/${id}/answers`).send({ questionId: 'QTEST1', answer })).status).toBe(400);
+    }
+    vi.mocked(evaluateAnswer).mockRejectedValueOnce(new AiEngineError('Engine unavailable', 503));
+    expect((await agent.post(`/api/interviews/${id}/answers`).send({ questionId: 'QTEST1', answer: STRONG_ANSWER })).status).toBe(503);
+    const resumed = await agent.get(`/api/interviews/${id}`);
+    expect(resumed.body.progress.answered).toBe(0);
+    expect(resumed.body.progress.currentQuestion.id).toBe('QTEST1');
+    expect((await agent.get('/api/interviews/not-an-id')).status).toBe(404);
+  });
   it('completes an interview and returns a detailed result', async () => {
     const agent = await candidateAgent('complete');
     const ownResumeId = await uploadResume(agent);
@@ -299,6 +349,7 @@ describe('completion and results', () => {
     expect(Array.isArray(result.improvements)).toBe(true);
     expect(result.missingConcepts).toContain('concept-b');
     expect(result.recommendations.length).toBeGreaterThan(0);
+    expect(result.improvements.length).toBeGreaterThan(0);
     expect(result.summary).toContain('rubric-based');
 
     // result endpoint and list show completion
@@ -337,6 +388,7 @@ describe('completion and results', () => {
     const intruder = await candidateAgent('intruder');
     expect((await intruder.get(`/api/interviews/${sessionId}`)).status).toBe(404);
     expect((await intruder.get(`/api/interviews/${sessionId}/result`)).status).toBe(404);
+    expect((await intruder.post(`/api/interviews/${sessionId}/complete`)).status).toBe(404);
     expect(
       (
         await intruder

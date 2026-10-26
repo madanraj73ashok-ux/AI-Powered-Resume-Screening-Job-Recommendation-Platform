@@ -56,10 +56,23 @@ const interviewSessionSchema = new mongoose.Schema(
     currentIndex: { type: Number, default: 0 },
     totalQuestions: { type: Number, default: 0 },
     generator: { type: String },
+    mode: { type: String, enum: ['text', 'voice'], default: 'text' },
+    interviewType: { type: String, enum: ['HR', 'Technical', 'Project-based', 'Behavioral', 'Mixed'], default: 'Mixed' },
+    targetDurationMinutes: { type: Number, default: 20 },
+    voice: { type: String, default: 'lessac' },
+    speakingRate: { type: Number, default: 1 },
+    adaptiveDifficulty: { type: Boolean, default: true },
+    resumeSnapshot: { type: mongoose.Schema.Types.Mixed },
+    live: {
+      draftQuestionId: String,
+      draftTranscript: { type: String, default: '' },
+      reviewRequired: { type: Boolean, default: true },
+      recognitionNote: String,
+    },
     startedAt: { type: Date, default: Date.now },
     completedAt: { type: Date },
   },
-  { timestamps: true }
+  { timestamps: true, optimisticConcurrency: true }
 );
 
 interviewSessionSchema.set('toJSON', { virtuals: true });
@@ -106,6 +119,14 @@ export interface InterviewSessionDoc extends mongoose.Document {
   currentIndex: number;
   totalQuestions: number;
   generator?: string;
+  mode: 'text' | 'voice';
+  interviewType: 'HR' | 'Technical' | 'Project-based' | 'Behavioral' | 'Mixed';
+  targetDurationMinutes: number;
+  voice: string;
+  speakingRate: number;
+  adaptiveDifficulty: boolean;
+  resumeSnapshot?: { candidateName: string; resumeName: string; summary?: string };
+  live?: { draftQuestionId?: string; draftTranscript?: string; reviewRequired?: boolean; recognitionNote?: string };
   startedAt: Date;
   completedAt?: Date;
   createdAt: Date;
