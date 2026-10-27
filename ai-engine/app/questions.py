@@ -303,6 +303,7 @@ def generate_questions(
     count: int = 8,
     seed: str = "",
     interview_type: Optional[str] = None,
+    confirmed_domains: Optional[List[str]] = None,
 ) -> dict:
     """Generate a deterministic, personalized question set."""
     if difficulty not in DIFFICULTIES:
@@ -600,6 +601,11 @@ def generate_questions(
         selected_ids.add(q["id"])
         seen.add(q["text"])
 
+    if confirmed_domains:
+        from .domains import domain_questions
+        grounded = [q for q in pool if q['type'] in ('project', 'architecture', 'experience', 'verification', 'background', 'certification', 'achievement')]
+        pool = list({q['id']: q for q in domain_questions(confirmed_domains, difficulty) + grounded}.values())
+        selected = pool[:count]
     if interview_type:
         # Live interview types reuse the same bank and actual resume sources.
         intro = _q("Please introduce yourself and explain how your background relates to the role you want.",

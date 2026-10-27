@@ -16,6 +16,7 @@ import {
 } from './aiEngine';
 import { getResumeOwned } from './resume.service';
 import { InterviewEvent } from '../models/InterviewEvent';
+import { DOMAIN_IDS } from './domain.service';
 
 export const startInterviewSchema = z.object({
   resumeId: z.string().min(1, 'A resume is required'),
@@ -27,6 +28,7 @@ export const startInterviewSchema = z.object({
   voice: z.enum(['lessac', 'custom']).default('lessac'),
   speakingRate: z.number().min(0.7).max(1.3).default(1),
   adaptiveDifficulty: z.boolean().default(true),
+  confirmedDomains: z.array(z.enum(DOMAIN_IDS)).max(3).transform(domains => [...new Set(domains)]).optional(),
 });
 
 export const submitAnswerSchema = z.object({
@@ -52,7 +54,7 @@ export async function startInterview(
   userId: string,
   input: { resumeId: string; difficulty: 'Beginner' | 'Intermediate' | 'Advanced'; questionCount: number;
     mode?: 'text' | 'voice'; interviewType?: InterviewSessionDoc['interviewType']; targetDurationMinutes?: number;
-    voice?: string; speakingRate?: number; adaptiveDifficulty?: boolean }
+    voice?: string; speakingRate?: number; adaptiveDifficulty?: boolean; confirmedDomains?: string[] }
 ): Promise<InterviewSessionDoc> {
   const resume = await getResumeOwned(input.resumeId, userId);
   if (!resume.fullText || !resume.fullText.trim()) {
@@ -71,6 +73,7 @@ export async function startInterview(
       count: input.questionCount,
       seed: `${resume._id.toString()}:${input.difficulty}`,
       ...(input.mode === 'voice' ? { interviewType: input.interviewType ?? 'Mixed' } : {}),
+      confirmedDomains: input.confirmedDomains ?? resume.confirmedDomains ?? [],
     });
   } catch (err) {
     engineError(err);
@@ -92,6 +95,7 @@ export async function startInterview(
     maxMarks: q.maxMarks,
     followUpTemplates: q.followUpTemplates ?? [],
     isFollowUp: false,
+    domain: q.domain, bankVersion: q.bankVersion, rubricVersion: q.rubricVersion,
   }));
 
   return InterviewSession.create({
@@ -106,6 +110,7 @@ export async function startInterview(
     mode: input.mode ?? 'text', interviewType: input.interviewType ?? 'Mixed',
     targetDurationMinutes: input.targetDurationMinutes ?? 20, voice: input.voice ?? 'lessac',
     speakingRate: input.speakingRate ?? 1, adaptiveDifficulty: input.adaptiveDifficulty ?? true,
+    confirmedDomains: input.confirmedDomains ?? resume.confirmedDomains ?? [],
     ...(input.mode === 'voice' ? { resumeSnapshot: { candidateName: String(resume.profile.name ?? 'Candidate'),
       resumeName: resume.originalName, summary: String(resume.profile.summary ?? '') } } : {}),
   });
@@ -246,6 +251,7 @@ export async function submitAnswer(
       followUpTemplates: [],
       isFollowUp: true,
       parentQuestionId: current.id,
+      domain: current.domain, bankVersion: current.bankVersion, rubricVersion: current.rubricVersion,
     };
     session.questions.splice(session.currentIndex + 1, 0, followUp);
   }
@@ -264,7 +270,8 @@ export async function submitAnswer(
         try {
           const resume = await getResumeOwned(session.resume.toString(), userId);
           const generated = await generateQuestions({ profile: resume.profile, findings: resume.analysis?.findings ?? [],
-            difficulty: target, count: 12, seed: `${id}:${session.currentIndex}`, interviewType: session.interviewType });
+            difficulty: target, count: 12, seed: `${id}:${session.currentIndex}`, interviewType: session.interviewType,
+            confirmedDomains: session.confirmedDomains });
           const asked = new Set(session.questions.slice(0, session.currentIndex).map(q => q.text));
           const candidate = generated.questions.find(q => q.type !== 'introduction' && q.type === next.type && (!next.skill || q.skill === next.skill) && !asked.has(q.text));
           if (candidate) session.questions[session.currentIndex] = { ...candidate, isFollowUp: false, followUpTemplates: candidate.followUpTemplates ?? [] };
@@ -435,6 +442,11 @@ export async function completeInterview(
       interviewDate: session.startedAt,
       presenceEvents,
       interviewType: session.interviewType, mode: session.mode, targetDurationMinutes: session.targetDurationMinutes,
+      confirmedDomains: session.confirmedDomains,
+      versions: { parser: 'not captured for this resume', classifier: 'not captured for this session',
+        rubric: session.questions.find(q => q.rubricVersion)?.rubricVersion ?? 'legacy-unversioned',
+        questionBank: session.questions.find(q => q.bankVersion)?.bankVersion ?? 'legacy-curated',
+        stt: 'runtime/model version not captured', tts: `configured voice: ${session.voice}; runtime version not captured`, llm: 'none' },
       durationSeconds: Math.round(((session.completedAt ?? new Date()).getTime() - session.startedAt.getTime()) / 1000),
       communicationFeedback: `${session.answers.filter(a => /\b(for example|for instance|such as|specifically)\b/i.test(a.text)).length} of ${session.answers.length} transcripts contain explicit example markers; ${session.answers.filter(a => /\b(because|therefore|trade.off|instead|so that)\b/i.test(a.text)).length} contain reasoning markers. These are low-confidence textual indicators, not a communication-competence score. No accent, speaking-speed, emotion or appearance score is computed. Recognition errors can affect these observations.`,
       answerObservations: session.questions.flatMap(q => {

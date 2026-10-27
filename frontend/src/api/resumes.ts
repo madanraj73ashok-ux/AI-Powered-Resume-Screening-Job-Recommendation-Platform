@@ -64,6 +64,8 @@ export interface Resume {
   pages?: { page?: number | null; chars?: number | null }[];
   profile: ResumeProfile;
   profileEdited?: boolean;
+  confirmedDomains?: string[];
+  domainDetection?: { suggestedDomains: string[]; uncertain: boolean; ranked: { domain: string; label: string; score: number; matchedSkills: string[] }[] };
   analysis?: {
     summary?: {
       overallStatus?: string;

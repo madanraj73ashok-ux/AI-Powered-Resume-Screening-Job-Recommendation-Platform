@@ -23,6 +23,7 @@ import {
   Spinner,
 } from '../components/ui';
 import { useToast } from '../components/Toast';
+import { DomainReview } from '../components/DomainReview';
 
 const STATUS_COLORS: Record<string, 'green' | 'amber' | 'red' | 'navy' | 'slate'> = {
   'Ready for Assessment': 'green',
@@ -413,6 +414,7 @@ export default function ResumeAnalysisPage() {
           {item.text}<Evidence evidence={item.evidence} />
         </li>)}</ul>
       </Card>)}
+      <DomainReview key={resume.id} id={resume.id} confirmed={resume.confirmedDomains} />
       <Card>
         <SectionTitle
           title="Claim-level findings"

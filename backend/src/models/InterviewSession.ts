@@ -14,6 +14,9 @@ const questionSchema = new mongoose.Schema(
     followUpTemplates: { type: [String], default: [] },
     isFollowUp: { type: Boolean, default: false },
     parentQuestionId: { type: String },
+    domain: String,
+    bankVersion: String,
+    rubricVersion: String,
   },
   { _id: false }
 );
@@ -62,6 +65,7 @@ const interviewSessionSchema = new mongoose.Schema(
     voice: { type: String, default: 'lessac' },
     speakingRate: { type: Number, default: 1 },
     adaptiveDifficulty: { type: Boolean, default: true },
+    confirmedDomains: { type: [String], default: [] },
     resumeSnapshot: { type: mongoose.Schema.Types.Mixed },
     live: {
       draftQuestionId: String,
@@ -91,6 +95,9 @@ export interface InterviewQuestionDoc {
   followUpTemplates: string[];
   isFollowUp: boolean;
   parentQuestionId?: string;
+  domain?: string;
+  bankVersion?: string;
+  rubricVersion?: string;
 }
 
 export interface InterviewAnswerDoc {
@@ -125,6 +132,7 @@ export interface InterviewSessionDoc extends mongoose.Document {
   voice: string;
   speakingRate: number;
   adaptiveDifficulty: boolean;
+  confirmedDomains: string[];
   resumeSnapshot?: { candidateName: string; resumeName: string; summary?: string };
   live?: { draftQuestionId?: string; draftTranscript?: string; reviewRequired?: boolean; recognitionNote?: string };
   startedAt: Date;

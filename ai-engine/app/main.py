@@ -12,7 +12,7 @@ import os
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .analysis import analyze
 from .extract import ExtractionError, extract_document
@@ -20,6 +20,8 @@ from .questions import DIFFICULTIES, generate_questions
 from .scoring import evaluate_answer
 from .skills import skill_categories
 from .speech import router as speech_router
+from .jobs import router as jobs_router
+from .domains import router as domains_router, DOMAIN_IDS
 
 app = FastAPI(
     title="VeriHire Local AI Engine",
@@ -27,6 +29,8 @@ app = FastAPI(
     description="Local resume extraction and analysis. No external AI calls.",
 )
 app.include_router(speech_router)
+app.include_router(jobs_router)
+app.include_router(domains_router)
 
 # Allow only the backend on localhost (internal service).
 app.add_middleware(
@@ -51,6 +55,7 @@ class GenerateQuestionsRequest(BaseModel):
     count: int = 8
     seed: str = ""
     interviewType: str | None = None
+    confirmedDomains: list[str] = Field(default_factory=list, max_length=3)
 
 
 class EvaluateAnswerRequest(BaseModel):
@@ -119,6 +124,8 @@ def generate(req: GenerateQuestionsRequest) -> dict:
         raise HTTPException(status_code=422, detail="Question count must be between 3 and 15.")
     if req.interviewType not in (None, "HR", "Technical", "Project-based", "Behavioral", "Mixed"):
         raise HTTPException(status_code=422, detail="Unsupported interview type.")
+    if any(domain not in DOMAIN_IDS for domain in req.confirmedDomains):
+        raise HTTPException(status_code=422, detail="Unsupported interview domain.")
     return generate_questions(
         req.profile,
         findings=req.findings,
@@ -126,6 +133,7 @@ def generate(req: GenerateQuestionsRequest) -> dict:
         count=req.count,
         seed=req.seed,
         interview_type=req.interviewType,
+        confirmed_domains=req.confirmedDomains,
     )
 
 

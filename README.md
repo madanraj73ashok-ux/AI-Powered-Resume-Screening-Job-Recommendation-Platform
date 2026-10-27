@@ -116,6 +116,16 @@ Physical microphone, speaker and webcam behavior still needs device/browser
 permission verification; this is not claimed as a completed human voice test.
 Job matching (Phase 5) remains pending in this checkpoint.
 
+### Domain and device-check checkpoint (in progress)
+
+Resume review now offers local domain suggestions and candidate confirmation, and
+the live interview includes microphone-level, audio-playback and connection checks.
+The initial versioned domain bank is small: interviews using a confirmed domain
+can contain fewer questions than requested, especially in Technical mode. A local
+job-matching prototype is present in the AI engine, but real vacancy discovery,
+the jobs dashboard, direct application links and tracking are not yet implemented.
+These changes remain a development checkpoint and require end-to-end testing.
+
 ### Voice interview design reference
 
 The supplied design reference for the live interview experience:

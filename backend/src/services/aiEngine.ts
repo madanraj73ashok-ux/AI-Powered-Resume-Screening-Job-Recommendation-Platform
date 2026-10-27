@@ -90,6 +90,9 @@ export interface EngineQuestion {
   followUpTemplates: string[];
   isFollowUp?: boolean;
   parentQuestionId?: string;
+  domain?: string;
+  bankVersion?: string;
+  rubricVersion?: string;
 }
 
 export interface EngineGeneration {
@@ -120,6 +123,7 @@ export async function generateQuestions(input: {
   count: number;
   seed: string;
   interviewType?: string;
+  confirmedDomains?: string[];
 }): Promise<EngineGeneration> {
   const res = await engineFetch('/generate-questions', {
     method: 'POST',
