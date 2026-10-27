@@ -3,6 +3,8 @@ import multer from 'multer';
 import { requireAuth, requireRole } from '../middleware/auth';
 import { ApiError } from '../middleware/errors';
 import { env } from '../config/env';
+import { validateBody } from '../middleware/validate';
+import { confirmDomains, detectDomains, domainSchema } from '../services/domain.service';
 import {
   uploadHandler,
   listHandler,
@@ -41,6 +43,12 @@ const upload = multer({
 });
 
 router.use(requireAuth, requireRole('candidate'));
+router.post('/:id/domains/detect', async (req, res, next) => {
+  try { res.json(await detectDomains(req.params.id, req.user!.id)); } catch (error) { next(error); }
+});
+router.put('/:id/domains', validateBody(domainSchema), async (req, res, next) => {
+  try { res.json(await confirmDomains(req.params.id, req.user!.id, req.body.confirmedDomains)); } catch (error) { next(error); }
+});
 
 router.post('/', upload.single('file'), uploadHandler);
 router.get('/', listHandler);

@@ -59,7 +59,7 @@ SKILL_DICTIONARY: Dict[str, Dict[str, List[str]]] = {
         "Elasticsearch": ["elasticsearch"],
         "Firebase": ["firebase"],
         "DynamoDB": ["dynamodb"],
-        "Oracle": ["oracle database", "oracle db"],
+        "Oracle Database": ["oracle database", "oracle db"],
         "SQL Server": ["sql server", "mssql"],
     },
     "cloud_devops": {
@@ -69,7 +69,8 @@ SKILL_DICTIONARY: Dict[str, Dict[str, List[str]]] = {
         "Docker": ["docker"],
         "Kubernetes": ["kubernetes", "k8s"],
         "CI/CD": ["ci/cd", "cicd", "continuous integration", "jenkins"],
-        "Git": ["git", "github", "gitlab"],
+        "Git": ["git"],
+        "Oracle Cloud": ["oracle cloud", "oracle cloud infrastructure", "oci"],
         "Linux": ["linux", "ubuntu"],
         "Terraform": ["terraform"],
     },
@@ -80,7 +81,7 @@ SKILL_DICTIONARY: Dict[str, Dict[str, List[str]]] = {
         "Computer Vision": ["computer vision", "opencv"],
         "Collaborative Filtering": ["collaborative filtering", "recommendation system", "recommender"],
         "Data Analysis": ["data analysis", "data analytics", "data analyst"],
-        "Data Visualization": ["data visualization", "matplotlib", "seaborn", "power bi", "tableau"],
+        "Data Visualization": ["data visualization", "matplotlib", "seaborn"],
         "Prompt Engineering": ["prompt engineering"],
     },
     "concepts_practices": {
@@ -95,11 +96,33 @@ SKILL_DICTIONARY: Dict[str, Dict[str, List[str]]] = {
         "Problem Solving": ["problem solving", "debugging", "troubleshooting"],
     },
     "soft_skills": {
+        "Critical Thinking": ["critical thinking"],
+        "Adaptability": ["adaptability"],
         "Team Leadership": ["team lead", "led a team", "leadership", "mentored"],
         "Communication": ["communication", "presented", "stakeholder"],
         "Project Management": ["project management", "project manager", "sprint planning"],
     },
+    "tools": {
+        "GitHub": ["github"], "GitLab": ["gitlab"],
+        "Power BI": ["power bi", "powerbi"], "Excel": ["excel", "microsoft excel"],
+        "Jupyter Notebook": ["jupyter", "jupyter notebook"], "VS Code": ["vs code", "visual studio code"],
+        "Tableau": ["tableau"], "DAX": ["dax"], "Power Query": ["power query"],
+        "SolidWorks": ["solidworks"], "Arduino": ["arduino"], "PLC": ["plc", "ladder logic"],
+        "Embedded C": ["embedded c"],
+    },
 }
+
+
+def normalize_skill(value: str) -> str | None:
+    value = re.sub(r'^(technical skills|soft skills|tools|programming|databases|frameworks)\s*:?\s*', '', value.strip(), flags=re.I)
+    value = re.sub(r'\s+', ' ', value).strip(' :.;')
+    if not value or value.lower() in {'skills', 'technical skills', 'internship', 'internships', 'projects', 'project', 'education', 'certifications', 'volunteer', 'volunteering', 'core competencies'}:
+        return None
+    for category in SKILL_DICTIONARY.values():
+        for canonical, aliases in category.items():
+            if value.lower() in {canonical.lower(), *aliases}:
+                return canonical
+    return value if 1 < len(value) < 60 else None
 
 # Flat lookup: alias -> (canonical, category)
 _ALIAS_INDEX: List[Tuple[str, str, str]] = []

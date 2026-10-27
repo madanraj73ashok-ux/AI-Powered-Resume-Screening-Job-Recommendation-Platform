@@ -8,18 +8,25 @@ No paid external AI APIs are used.
 
 from __future__ import annotations
 
+import asyncio
+import json
 import os
+import subprocess
+import sys
+import threading
+from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .analysis import analyze
-from .extract import ExtractionError, extract_document
 from .questions import DIFFICULTIES, generate_questions
 from .scoring import evaluate_answer
 from .skills import skill_categories
 from .speech import router as speech_router
+from .jobs import router as jobs_router
+from .domains import router as domains_router, DOMAIN_IDS
 
 app = FastAPI(
     title="VeriHire Local AI Engine",
@@ -27,6 +34,8 @@ app = FastAPI(
     description="Local resume extraction and analysis. No external AI calls.",
 )
 app.include_router(speech_router)
+app.include_router(jobs_router)
+app.include_router(domains_router)
 
 # Allow only the backend on localhost (internal service).
 app.add_middleware(
@@ -37,6 +46,38 @@ app.add_middleware(
 )
 
 MAX_UPLOAD_BYTES = int(os.environ.get("AI_MAX_UPLOAD_MB", "5")) * 1024 * 1024
+EXTRACTION_TIMEOUT_SECONDS = 25
+_extraction_slots = threading.BoundedSemaphore(2)
+
+
+def _extract_in_worker(extension: str, data: bytes) -> dict:
+    """Bound concurrency and time for a separate parser process; not an OS sandbox."""
+    if not _extraction_slots.acquire(blocking=False):
+        raise HTTPException(status_code=503, detail="Document processing is busy. Please retry.")
+    try:
+        try:
+            result = subprocess.run(
+                [sys.executable, '-m', 'app.extract_worker', extension], input=data,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=EXTRACTION_TIMEOUT_SECONDS,
+                cwd=str(Path(__file__).resolve().parents[1]),
+                creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
+                check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise HTTPException(status_code=422, detail="Document processing timed out.") from exc
+        except OSError as exc:
+            raise HTTPException(status_code=503, detail="Document processor could not start.") from exc
+        if result.returncode:
+            raise HTTPException(status_code=422, detail="The document could not be processed safely.")
+        try:
+            payload = json.loads(result.stdout)
+        except (ValueError, UnicodeDecodeError) as exc:
+            raise HTTPException(status_code=503, detail="Document processor returned an invalid result.") from exc
+        if 'error' in payload:
+            raise HTTPException(status_code=422, detail=payload['error'])
+        return payload
+    finally:
+        _extraction_slots.release()
 
 
 class AnalyzeRequest(BaseModel):
@@ -51,6 +92,7 @@ class GenerateQuestionsRequest(BaseModel):
     count: int = 8
     seed: str = ""
     interviewType: str | None = None
+    confirmedDomains: list[str] = Field(default_factory=list, max_length=3)
 
 
 class EvaluateAnswerRequest(BaseModel):
@@ -76,16 +118,16 @@ def skills() -> dict:
 
 @app.post("/extract")
 async def extract(file: UploadFile = File(...)) -> dict:
-    data = await file.read()
+    data = await file.read(MAX_UPLOAD_BYTES + 1)
     if len(data) == 0:
         raise HTTPException(status_code=400, detail="The uploaded file is empty.")
     if len(data) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=400, detail="The file is too large.")
-    try:
-        result = extract_document(file.filename or "", data, file.content_type or "")
-    except ExtractionError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return result
+    filename = (file.filename or '').lower()
+    extension = 'pdf' if filename.endswith('.pdf') else 'docx' if filename.endswith('.docx') else None
+    if not extension:
+        raise HTTPException(status_code=422, detail="Unsupported file type. Only PDF and DOCX files are accepted.")
+    return await asyncio.to_thread(_extract_in_worker, extension, data)
 
 
 @app.post("/analyze")
@@ -119,6 +161,8 @@ def generate(req: GenerateQuestionsRequest) -> dict:
         raise HTTPException(status_code=422, detail="Question count must be between 3 and 15.")
     if req.interviewType not in (None, "HR", "Technical", "Project-based", "Behavioral", "Mixed"):
         raise HTTPException(status_code=422, detail="Unsupported interview type.")
+    if any(domain not in DOMAIN_IDS for domain in req.confirmedDomains):
+        raise HTTPException(status_code=422, detail="Unsupported interview domain.")
     return generate_questions(
         req.profile,
         findings=req.findings,
@@ -126,6 +170,7 @@ def generate(req: GenerateQuestionsRequest) -> dict:
         count=req.count,
         seed=req.seed,
         interview_type=req.interviewType,
+        confirmed_domains=req.confirmedDomains,
     )
 
 

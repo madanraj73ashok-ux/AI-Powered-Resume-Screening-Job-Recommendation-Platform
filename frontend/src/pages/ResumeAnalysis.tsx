@@ -23,10 +23,12 @@ import {
   Spinner,
 } from '../components/ui';
 import { useToast } from '../components/Toast';
+import { DomainReview } from '../components/DomainReview';
 
 const STATUS_COLORS: Record<string, 'green' | 'amber' | 'red' | 'navy' | 'slate'> = {
   'Ready for Assessment': 'green',
   'Verified Claims Recorded': 'green',
+  'Supported by resume text': 'green',
   'Needs Review': 'amber',
   'Evidence Requested': 'amber',
   'Verification Incomplete': 'amber',
@@ -413,6 +415,7 @@ export default function ResumeAnalysisPage() {
           {item.text}<Evidence evidence={item.evidence} />
         </li>)}</ul>
       </Card>)}
+      <DomainReview key={resume.id} id={resume.id} confirmed={resume.confirmedDomains} />
       <Card>
         <SectionTitle
           title="Claim-level findings"
@@ -426,15 +429,19 @@ export default function ResumeAnalysisPage() {
               <li key={f.id} className="rounded-lg border border-slate-200 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="text-sm font-semibold text-navy-900">{f.claim}</div>
-                  <Badge color={STATUS_COLORS[f.status] ?? 'slate'}>{f.status}</Badge>
+                  <Badge color={STATUS_COLORS[f.status] ?? 'slate'}>{f.status === 'Verified Claims Recorded' ? 'Supported by resume text' : f.status}</Badge>
                 </div>
                 <p className="mt-1 text-sm text-slate-700">{f.finding}</p>
                 <p className="mt-1 text-xs text-slate-500">{f.reason}</p>
+                {f.evidenceCategories?.length ? <p className="mt-2 text-xs text-slate-600">Evidence: {f.evidenceCategories.join(' · ')}</p> : null}
                 {f.evidence ? (
                   <div className="mt-2 rounded bg-slate-50 px-3 py-2">
                     <Evidence evidence={f.evidence} />
                   </div>
                 ) : null}
+                {f.supportingEvidence?.map((item, index) => <div key={`${item.kind}-${index}`} className="mt-2 rounded bg-slate-50 px-3 py-2 text-xs">
+                  <span className="font-semibold">{item.kind}</span><Evidence evidence={item.evidence ?? (item.excerpt ? { quote: item.excerpt } : null)} />
+                </div>)}
                 <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
                   <span>
                     Method: <span className="text-slate-700">{f.method}</span>

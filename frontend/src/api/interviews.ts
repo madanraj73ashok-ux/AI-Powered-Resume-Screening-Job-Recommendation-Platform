@@ -131,6 +131,7 @@ export interface StartInterviewInput {
   voice?: string;
   speakingRate?: number;
   adaptiveDifficulty?: boolean;
+  confirmedDomains?: string[];
 }
 
 export async function startInterview(

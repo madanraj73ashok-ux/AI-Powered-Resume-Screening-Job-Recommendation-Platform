@@ -102,6 +102,11 @@ engine is not running. Sample resumes are in `docs/samples/` (synthetic data onl
   protected route (`candidate` / `recruiter` / `admin`).
 - Rate limiting on auth endpoints; Helmet security headers; CORS restricted to the frontend origin.
 - The admin account can only be created by the seed script, never by self-registration.
+- Resume extraction uses a separate, time-limited local parser process with upload,
+  PDF page, text and DOCX archive expansion limits. This process runs under the
+  same user account and is not an operating-system sandbox or antivirus scan.
+  Uploaded originals are kept in the configured private directory; on Windows,
+  filesystem access also depends on the directory's Windows ACLs.
 
 ## Project status
 
@@ -115,6 +120,16 @@ The HTTP/WebSocket/speech/report pipeline has been verified using synthetic audi
 Physical microphone, speaker and webcam behavior still needs device/browser
 permission verification; this is not claimed as a completed human voice test.
 Job matching (Phase 5) remains pending in this checkpoint.
+
+### Domain and device-check checkpoint (in progress)
+
+Resume review now offers local domain suggestions and candidate confirmation, and
+the live interview includes microphone-level, audio-playback and connection checks.
+The initial versioned domain bank is small: interviews using a confirmed domain
+can contain fewer questions than requested, especially in Technical mode. A local
+job-matching prototype is present in the AI engine, but real vacancy discovery,
+the jobs dashboard, direct application links and tracking are not yet implemented.
+These changes remain a development checkpoint and require end-to-end testing.
 
 ### Voice interview design reference
 
