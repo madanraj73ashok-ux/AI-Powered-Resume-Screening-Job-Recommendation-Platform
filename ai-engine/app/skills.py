@@ -116,7 +116,7 @@ SKILL_DICTIONARY: Dict[str, Dict[str, List[str]]] = {
 def normalize_skill(value: str) -> str | None:
     value = re.sub(r'^(technical skills|soft skills|tools|programming|databases|frameworks)\s*:?\s*', '', value.strip(), flags=re.I)
     value = re.sub(r'\s+', ' ', value).strip(' :.;')
-    if not value or value.lower() in {'skills', 'technical skills', 'internships', 'projects', 'project', 'education', 'certifications'}:
+    if not value or value.lower() in {'skills', 'technical skills', 'internship', 'internships', 'projects', 'project', 'education', 'certifications', 'volunteer', 'volunteering', 'core competencies'}:
         return None
     for category in SKILL_DICTIONARY.values():
         for canonical, aliases in category.items():

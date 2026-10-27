@@ -14,7 +14,18 @@ router = APIRouter(prefix='/domains')
 
 
 def classify_domains(profile):
-    skills = {normalize_skill(str(item.get('skill') or '')) for item in profile.get('skills') or []}
+    # Some legacy profiles detected dictionary skills anywhere on the page,
+    # including college names. Exclude those when their sole source excerpt
+    # contains a personal/education field; explicit skill-list entries survive.
+    excluded_sources = [str(x.get('text') or '').strip().lower() for x in profile.get('education') or []]
+    excluded_sources += [str(profile.get('name') or '').strip().lower()]
+    skills = set()
+    for item in profile.get('skills') or []:
+        evidence = item.get('evidence')
+        quote = str(evidence.get('quote') or '').lower() if isinstance(evidence, dict) else ''
+        if quote and any(source and source in quote for source in excluded_sources):
+            continue
+        skills.add(normalize_skill(str(item.get('skill') or '')))
     weighted = []
     for field, weight in [('projects', 3), ('experience', 3), ('responsibilities', 3), ('certifications', .5)]:
         weighted += [(str(item.get('text') or ''), weight, item.get('evidence')) for item in profile.get(field) or []]

@@ -42,6 +42,8 @@ export interface Finding {
   type: string;
   claim: string;
   evidence?: Evidence | null;
+  evidenceCategories?: string[];
+  supportingEvidence?: { kind: string; evidence?: Evidence | null; excerpt?: string }[];
   method: string;
   finding: string;
   reason: string;

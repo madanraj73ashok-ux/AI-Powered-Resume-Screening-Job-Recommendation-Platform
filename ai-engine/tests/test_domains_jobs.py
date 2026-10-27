@@ -35,6 +35,14 @@ def test_personal_details_and_education_do_not_change_domain_results():
     assert classify_domains(base) == classify_domains(altered)
 
 
+def test_legacy_skill_detected_only_in_college_name_is_not_used():
+    profile = {'name': 'Example Candidate', 'education': [{'text': 'Python University of Robotics'}],
+               'skills': [{'skill': 'Python', 'evidence': {'page': 1, 'quote': 'Python University of Robotics'}}]}
+    result = classify_domains(profile)
+    assert all(not item['matchedSkills'] for item in result['ranked'])
+    assert result['suggestedDomains'] == ['general']
+
+
 def test_confirmed_domains_preserve_mixed_coverage_without_duplicate_question_ids():
     result = generate_questions({'skills': []}, difficulty='Intermediate', count=8,
                                 confirmed_domains=['robotics_automation', 'software_it', 'robotics_automation'])
@@ -50,6 +58,16 @@ def test_robotics_bank_does_not_insert_generic_software_questions():
     assert any(q.get('domain') == 'robotics_automation' for q in result['questions'])
     assert all(q.get('domain') in (None, 'robotics_automation') for q in result['questions'])
     assert not any('API' in q['text'] for q in result['questions'])
+
+
+def test_confirmed_domain_can_include_relevant_claimed_skills_without_other_domain_skills():
+    profile = {'skills': [{'skill': 'Arduino'}, {'skill': 'Python'}, {'skill': 'React'}]}
+    result = generate_questions(profile, difficulty='Beginner', count=8,
+                                confirmed_domains=['robotics_automation'], interview_type='Technical')
+    text = ' '.join(q['text'] for q in result['questions'])
+    assert 'Arduino' in text and 'Python' in text
+    assert 'React' not in text
+    assert len({q['id'] for q in result['questions']}) == len(result['questions'])
 
 
 def test_certifications_do_not_count_as_hands_on_evidence():

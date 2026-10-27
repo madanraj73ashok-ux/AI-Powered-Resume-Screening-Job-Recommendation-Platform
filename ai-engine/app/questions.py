@@ -602,9 +602,11 @@ def generate_questions(
         seen.add(q["text"])
 
     if confirmed_domains:
-        from .domains import domain_questions
+        from .domains import CATALOG, domain_questions
         grounded = [q for q in pool if q['type'] in ('project', 'architecture', 'experience', 'verification', 'background', 'certification', 'achievement')]
-        pool = list({q['id']: q for q in domain_questions(confirmed_domains, difficulty) + grounded}.values())
+        allowed = {skill for domain in confirmed_domains for skill in CATALOG['domains'].get(domain, {}).get('skills', [])}
+        relevant_skills = [q for q in pool if q['type'] in ('fundamentals', 'skill_application') and q.get('skill') in allowed]
+        pool = list({q['id']: q for q in domain_questions(confirmed_domains, difficulty) + relevant_skills + grounded}.values())
         selected = pool[:count]
     if interview_type:
         # Live interview types reuse the same bank and actual resume sources.

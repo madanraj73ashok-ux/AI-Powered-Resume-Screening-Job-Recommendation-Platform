@@ -49,7 +49,7 @@ export async function extractFromBuffer(
   const res = await engineFetch('/extract', { method: 'POST', body: form });
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { detail?: string };
-    throw new AiEngineError(body.detail || 'The document could not be parsed.', 422);
+    throw new AiEngineError(body.detail || 'The document could not be parsed.', res.status >= 500 ? 503 : 422);
   }
   return (await res.json()) as EngineExtraction;
 }

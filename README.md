@@ -102,6 +102,11 @@ engine is not running. Sample resumes are in `docs/samples/` (synthetic data onl
   protected route (`candidate` / `recruiter` / `admin`).
 - Rate limiting on auth endpoints; Helmet security headers; CORS restricted to the frontend origin.
 - The admin account can only be created by the seed script, never by self-registration.
+- Resume extraction uses a separate, time-limited local parser process with upload,
+  PDF page, text and DOCX archive expansion limits. This process runs under the
+  same user account and is not an operating-system sandbox or antivirus scan.
+  Uploaded originals are kept in the configured private directory; on Windows,
+  filesystem access also depends on the directory's Windows ACLs.
 
 ## Project status
 
