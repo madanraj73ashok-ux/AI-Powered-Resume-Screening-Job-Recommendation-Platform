@@ -83,11 +83,14 @@ async function main() {
     if (reloaded.session.live.draftTranscript !== recognized.text || reloaded.session.answers.length) throw new Error('Draft did not survive reload, or was scored without confirmation');
     const scored = await (await call(`/interviews/${id}/answers`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ questionId: state.progress.currentQuestion.id, answer: recognized.text }) })).json();
+    const answered = await (await call(`/interviews/${id}/live`)).json() as { session: { answers: { text: string; originalTranscript?: string }[] } };
+    if (answered.session.answers[0]?.originalTranscript !== recognized.text || answered.session.answers[0]?.text !== recognized.text)
+      throw new Error('Original and submitted transcripts were not preserved');
     const finished = await (await call(`/interviews/${id}/complete`, { method: 'POST' })).json() as { result: { liveReport: { humanReviewRequired: boolean }; answeredCount: number } };
     if (!finished.result.liveReport.humanReviewRequired || finished.result.answeredCount !== 1) throw new Error('Report metadata not persisted');
     console.log(JSON.stringify({ passed: true, fixture: 'synthetic DOCX and synthesized audio; not a human microphone test',
       questionAudioBytes: questionBytes.length, audioSeconds: audio.length / 32000, recognized: recognized.text,
-      transcriptPersisted: true, explicitConfirmationBeforeScoring: true, evaluation: scored,
+      transcriptPersisted: true, originalTranscriptPersisted: true, explicitConfirmationBeforeScoring: true, evaluation: scored,
       reportGenerated: true, reportUrl: `http://localhost:5173/interview/results/${id}` }, null, 2));
   } finally { ws.close(); }
 }

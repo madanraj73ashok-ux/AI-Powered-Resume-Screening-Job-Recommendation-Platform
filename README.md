@@ -124,8 +124,8 @@ an illustrated interviewer, optional camera preview and face-presence events,
 saved transcripts, and the original text-mode fallback. See
 [voice installation, verification and limitations](docs/LIVE_INTERVIEW.md).
 The HTTP/WebSocket/speech/report pipeline has been verified using synthetic audio.
-Physical microphone, speaker and webcam behavior still needs device/browser
-permission verification; this is not claimed as a completed human voice test.
+A user reported that a spoken greeting appeared in the transcript and received
+a spoken reply. A complete human interview and broader device checks remain open.
 
 ### Domain, device-check and job-matching checkpoint (in progress)
 
