@@ -37,6 +37,8 @@ export interface InterviewQuestion {
 export interface InterviewAnswer {
   questionId: string;
   text: string;
+  originalTranscript?: string;
+  transcriptEdited?: boolean;
   marksAwarded: number;
   maxMarks: number;
   percentage: number;

@@ -346,6 +346,10 @@ function ResultDetail({ id }: { id: string }) {
                       <p className="mt-2 rounded bg-slate-50 px-3 py-2 text-sm text-slate-700">
                         {a.text}
                       </p>
+                      {a.transcriptEdited && a.originalTranscript ? <details className="mt-2 text-xs text-slate-600">
+                        <summary className="cursor-pointer">Original speech recognition before correction</summary>
+                        <p className="mt-1">{a.originalTranscript}</p>
+                      </details> : null}
                       <p className="mt-2 text-xs text-slate-600">{a.explanation}</p>
                       {a.missingConcepts.length > 0 ? (
                         <p className="mt-1 text-xs text-amber-700">

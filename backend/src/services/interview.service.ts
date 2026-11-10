@@ -207,6 +207,9 @@ export async function submitAnswer(
   session.answers.push({
     questionId: current.id,
     text: input.answer,
+    ...(session.mode === 'voice' && session.live?.draftQuestionId === current.id && session.live.originalTranscript
+      ? { originalTranscript: session.live.originalTranscript,
+          transcriptEdited: session.live.originalTranscript !== input.answer.trim() } : {}),
     marksAwarded: evaluation.marksAwarded,
     maxMarks: evaluation.maxMarks,
     percentage: evaluation.percentage,

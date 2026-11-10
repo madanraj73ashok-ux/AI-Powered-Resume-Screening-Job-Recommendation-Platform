@@ -25,6 +25,8 @@ const answerSchema = new mongoose.Schema(
   {
     questionId: { type: String, required: true },
     text: { type: String, required: true },
+    originalTranscript: { type: String },
+    transcriptEdited: { type: Boolean },
     marksAwarded: { type: Number, required: true },
     maxMarks: { type: Number, required: true },
     percentage: { type: Number, required: true },
@@ -70,6 +72,7 @@ const interviewSessionSchema = new mongoose.Schema(
     live: {
       draftQuestionId: String,
       draftTranscript: { type: String, default: '' },
+      originalTranscript: String,
       reviewRequired: { type: Boolean, default: true },
       recognitionNote: String,
     },
@@ -103,6 +106,8 @@ export interface InterviewQuestionDoc {
 export interface InterviewAnswerDoc {
   questionId: string;
   text: string;
+  originalTranscript?: string;
+  transcriptEdited?: boolean;
   marksAwarded: number;
   maxMarks: number;
   percentage: number;
@@ -134,7 +139,7 @@ export interface InterviewSessionDoc extends mongoose.Document {
   adaptiveDifficulty: boolean;
   confirmedDomains: string[];
   resumeSnapshot?: { candidateName: string; resumeName: string; summary?: string };
-  live?: { draftQuestionId?: string; draftTranscript?: string; reviewRequired?: boolean; recognitionNote?: string };
+  live?: { draftQuestionId?: string; draftTranscript?: string; originalTranscript?: string; reviewRequired?: boolean; recognitionNote?: string };
   startedAt: Date;
   completedAt?: Date;
   createdAt: Date;
