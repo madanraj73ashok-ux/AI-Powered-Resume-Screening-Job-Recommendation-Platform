@@ -11,6 +11,8 @@ import InterviewStartPage from './pages/InterviewStart';
 import InterviewSessionPage from './pages/InterviewSession';
 import InterviewResultsPage from './pages/InterviewResults';
 import LiveInterviewPage from './pages/LiveInterview';
+import JobsPage from './pages/Jobs';
+import ApplicationsPage from './pages/Applications';
 import SettingsPage from './pages/Settings';
 import NotFoundPage from './pages/NotFound';
 
@@ -110,6 +112,22 @@ export default function App() {
       <Route
         path="/interview/live/:id"
         element={<CandidateOnly><LiveInterviewPage /></CandidateOnly>}
+      />
+      <Route
+        path="/jobs"
+        element={
+          <CandidateOnly>
+            <JobsPage />
+          </CandidateOnly>
+        }
+      />
+      <Route
+        path="/applications"
+        element={
+          <CandidateOnly>
+            <ApplicationsPage />
+          </CandidateOnly>
+        }
       />
       <Route
         path="/interview/:id"

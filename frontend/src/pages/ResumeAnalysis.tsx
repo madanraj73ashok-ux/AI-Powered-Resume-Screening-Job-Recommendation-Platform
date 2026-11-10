@@ -24,6 +24,7 @@ import {
 } from '../components/ui';
 import { useToast } from '../components/Toast';
 import { DomainReview } from '../components/DomainReview';
+import { RoleSuggestions } from '../components/RoleSuggestions';
 
 const STATUS_COLORS: Record<string, 'green' | 'amber' | 'red' | 'navy' | 'slate'> = {
   'Ready for Assessment': 'green',
@@ -416,6 +417,7 @@ export default function ResumeAnalysisPage() {
         </li>)}</ul>
       </Card>)}
       <DomainReview key={resume.id} id={resume.id} confirmed={resume.confirmedDomains} />
+      <RoleSuggestions key={resume.id} resumeId={resume.id} />
       <Card>
         <SectionTitle
           title="Claim-level findings"

@@ -61,10 +61,11 @@ def classify_domains(profile):
 
 
 def domain_questions(confirmed, difficulty):
-    questions = []
+    groups = []
     for domain in dict.fromkeys(confirmed):
         data = CATALOG['domains'].get(domain)
         if not data: continue
+        questions = []
         for q in data['questions']:
             if q['difficulty'] == difficulty:
                 questions.append({'id': f"{CATALOG['version']}:{q['id']}", 'text': q['text'], 'type': 'fundamentals',
@@ -74,7 +75,10 @@ def domain_questions(confirmed, difficulty):
                     'completeness': '25%: Address all parts of the question.', 'practicalExamples': '20%: Give a specific example.',
                     'understanding': '15%: Explain the reasoning, limitations and trade-offs.'}, 'followUpTemplates': [],
                   'bankVersion': CATALOG['version'], 'rubricVersion': CATALOG['rubricVersion'], 'isFollowUp': False})
-    return questions
+        groups.append(questions)
+    # Round-robin preserves coverage when the requested count truncates the pool.
+    return [group[index] for index in range(max((len(group) for group in groups), default=0))
+            for group in groups if index < len(group)]
 
 
 class DomainRequest(BaseModel):

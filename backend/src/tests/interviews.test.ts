@@ -231,6 +231,9 @@ describe('answering, follow-ups and resuming', () => {
     expect(res.body.evaluation.percentage).toBe(30);
     expect(res.body.nextQuestion.isFollowUp).toBe(true);
     expect(res.body.nextQuestion.text).toContain('concept-b');
+    expect(res.body.nextQuestion.text).toContain('Not much.');
+    expect(res.body.nextQuestion.text).toContain(started.body.progress.currentQuestion.text.slice(0, 160));
+    expect(res.body.nextQuestion.parentQuestionId).toBe('QTEST1');
     expect(res.body.progress.total).toBe(5); // follow-up appended
   });
 

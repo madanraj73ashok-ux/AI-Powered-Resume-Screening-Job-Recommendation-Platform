@@ -1,7 +1,7 @@
 """Synthetic regression fixtures for the domain and job-matching checkpoint."""
 import pytest
 
-from app.domains import classify_domains
+from app.domains import CATALOG, classify_domains, domain_questions
 from app.jobs import candidate_evidence, parse_job, recommend
 from app.questions import generate_questions
 from app.skills import detect_skills, normalize_skill
@@ -50,6 +50,21 @@ def test_confirmed_domains_preserve_mixed_coverage_without_duplicate_question_id
     assert {q['domain'] for q in questions} == {'robotics_automation', 'software_it'}
     assert len({q['id'] for q in questions}) == len(questions)
     assert all(q['bankVersion'] and q['rubricVersion'] for q in questions)
+
+
+def test_question_catalog_has_substantive_versions_for_each_domain_and_level():
+    for domain in CATALOG['domains']:
+        for difficulty in ('Beginner', 'Intermediate', 'Advanced'):
+            questions = domain_questions([domain], difficulty)
+            assert len(questions) >= 3
+            assert all(len(q['text']) > 30 and len(q['expectedConcepts']) >= 3 for q in questions)
+            assert len({q['id'] for q in questions}) == len(questions)
+
+
+def test_mixed_domain_interviews_keep_coverage_when_short():
+    selected = generate_questions({'skills': []}, difficulty='Beginner', count=3,
+        confirmed_domains=['software_it', 'robotics_automation', 'data_analytics'])['questions']
+    assert {q['domain'] for q in selected} == {'software_it', 'robotics_automation', 'data_analytics'}
 
 
 def test_robotics_bank_does_not_insert_generic_software_questions():

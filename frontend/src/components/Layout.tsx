@@ -10,6 +10,8 @@ import {
   AnalysisIcon,
   InterviewIcon,
   ResultsIcon,
+  JobsIcon,
+  ApplicationsIcon,
   SignOutIcon,
   SettingsIcon,
 } from './icons';
@@ -30,6 +32,8 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/assessment', label: 'Assessment Test', roles: ['candidate'], icon: AnalysisIcon },
   { to: '/interview', label: 'AI Interview', roles: ['candidate'], icon: InterviewIcon, end: true },
   { to: '/interview/results', label: 'Interview Results', roles: ['candidate'], icon: ResultsIcon },
+  { to: '/jobs', label: 'Job Matches', roles: ['candidate'], icon: JobsIcon },
+  { to: '/applications', label: 'Applications', roles: ['candidate'], icon: ApplicationsIcon },
   { to: '/profile', label: 'My Profile', roles: ['candidate', 'recruiter', 'admin'], icon: ProfileIcon },
   { to: '/settings', label: 'Settings', roles: ['candidate', 'recruiter', 'admin'], icon: SettingsIcon },
 ];

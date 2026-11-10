@@ -10,6 +10,9 @@ export interface UserDoc extends mongoose.Document {
   passwordHash: string;
   role: UserRole;
   isActive: boolean;
+  // Candidate-entered job preferences (location, arrangement, experience years).
+  // Never inferred from the resume: only the candidate sets these.
+  jobPreferences?: Record<string, unknown>;
   lastLoginAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -37,6 +40,7 @@ const userSchema = new mongoose.Schema<UserDoc>(
       default: 'candidate',
     },
     isActive: { type: Boolean, default: true },
+    jobPreferences: { type: mongoose.Schema.Types.Mixed },
     lastLoginAt: { type: Date },
   },
   {

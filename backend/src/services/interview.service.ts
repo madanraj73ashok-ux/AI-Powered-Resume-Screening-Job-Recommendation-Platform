@@ -231,9 +231,11 @@ export async function submitAnswer(
     evaluation.percentage < 70 &&
     session.questions.length < MAX_TOTAL_QUESTIONS
   ) {
+    const questionExcerpt = current.text.replace(/\s+/g, ' ').trim().slice(0, 160);
+    const answerExcerpt = input.answer.replace(/\s+/g, ' ').trim().slice(0, 120);
     const followUp: InterviewQuestionDoc = {
       id: `Q${crypto.randomBytes(5).toString('hex')}`,
-      text: evaluation.suggestedFollowUp,
+      text: `Regarding “${questionExcerpt}”, you said “${answerExcerpt}”. ${evaluation.suggestedFollowUp}`,
       type: 'follow_up',
       difficulty: current.difficulty,
       skill: current.skill,
