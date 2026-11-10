@@ -1,0 +1,22 @@
+{
+  "version": "1.0.0",
+  "note": "Real company job boards reachable through the documented public Greenhouse and Lever job-board APIs. Every token here was verified to return live vacancies (see scripts/verify_job_sources.py). No vacancies are ever fabricated; when a board is unreachable the UI shows the source as unavailable.",
+  "sources": [
+    { "provider": "greenhouse", "token": "mongodb", "company": "MongoDB" },
+    { "provider": "greenhouse", "token": "cloudflare", "company": "Cloudflare" },
+    { "provider": "greenhouse", "token": "stripe", "company": "Stripe" },
+    { "provider": "greenhouse", "token": "datadog", "company": "Datadog" },
+    { "provider": "greenhouse", "token": "reddit", "company": "Reddit" },
+    { "provider": "greenhouse", "token": "figma", "company": "Figma" },
+    { "provider": "greenhouse", "token": "anthropic", "company": "Anthropic" },
+    { "provider": "greenhouse", "token": "coinbase", "company": "Coinbase" },
+    { "provider": "lever", "token": "paytm", "company": "Paytm" },
+    { "provider": "lever", "token": "jumpcloud", "company": "JumpCloud" },
+    { "provider": "lever", "token": "zimperium", "company": "Zimperium" },
+    { "provider": "lever", "token": "brillio-2", "company": "Brillio" },
+    { "provider": "lever", "token": "levelai", "company": "Level AI" },
+    { "provider": "lever", "token": "entrata", "company": "Entrata" },
+    { "provider": "lever", "token": "weekdayworks", "company": "Weekday" },
+    { "provider": "lever", "token": "smart-working-solutions", "company": "Smart Working Solutions" }
+  ]
+}

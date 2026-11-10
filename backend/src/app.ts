@@ -11,6 +11,8 @@ import adminRoutes from './routes/admin.routes';
 import resumeRoutes from './routes/resume.routes';
 import interviewRoutes from './routes/interview.routes';
 import { assessmentRoutes } from './routes/assessment.routes';
+import jobRoutes from './routes/job.routes';
+import applicationRoutes from './routes/application.routes';
 
 export function createApp(): Express {
   const app = express();
@@ -31,6 +33,8 @@ export function createApp(): Express {
   app.use('/api/resumes', apiLimiter, resumeRoutes);
   app.use('/api/assessments', apiLimiter, assessmentRoutes);
   app.use('/api/interviews', apiLimiter, interviewRoutes);
+  app.use('/api/jobs', apiLimiter, jobRoutes);
+  app.use('/api/applications', apiLimiter, applicationRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

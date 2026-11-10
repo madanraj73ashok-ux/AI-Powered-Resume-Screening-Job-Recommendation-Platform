@@ -57,6 +57,9 @@ const resumeSchema = new mongoose.Schema(
       charCount: { type: Number, default: 0 },
     },
     profileEdited: { type: Boolean, default: false },
+    domainDetection: { type: mongoose.Schema.Types.Mixed },
+    confirmedDomains: { type: [String], default: [] },
+    domainConfirmedAt: Date,
     analysis: {
       summary: { type: mongoose.Schema.Types.Mixed },
       findings: { type: [mongoose.Schema.Types.Mixed], default: [] },
@@ -83,6 +86,9 @@ export interface ResumeDoc extends mongoose.Document {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   profile: Record<string, any>;
   profileEdited: boolean;
+  domainDetection?: Record<string, unknown>;
+  confirmedDomains?: string[];
+  domainConfirmedAt?: Date;
   analysis?: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     summary?: Record<string, any>;

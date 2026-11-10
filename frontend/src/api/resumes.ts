@@ -42,6 +42,8 @@ export interface Finding {
   type: string;
   claim: string;
   evidence?: Evidence | null;
+  evidenceCategories?: string[];
+  supportingEvidence?: { kind: string; evidence?: Evidence | null; excerpt?: string }[];
   method: string;
   finding: string;
   reason: string;
@@ -64,6 +66,8 @@ export interface Resume {
   pages?: { page?: number | null; chars?: number | null }[];
   profile: ResumeProfile;
   profileEdited?: boolean;
+  confirmedDomains?: string[];
+  domainDetection?: { suggestedDomains: string[]; uncertain: boolean; ranked: { domain: string; label: string; score: number; matchedSkills: string[] }[] };
   analysis?: {
     summary?: {
       overallStatus?: string;

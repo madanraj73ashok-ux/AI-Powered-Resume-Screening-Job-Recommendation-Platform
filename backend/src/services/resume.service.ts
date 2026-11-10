@@ -21,11 +21,19 @@ function uploadRoot(): string {
 function validateContent(file: UploadedFile): void {
   const head = file.buffer.subarray(0, 8);
   const isPdf = head.subarray(0, 4).toString('latin1') === '%PDF';
-  const isZip = head[0] === 0x50 && head[1] === 0x4b; // DOCX is a zip package
-  if (file.originalname.toLowerCase().endsWith('.pdf') && !isPdf) {
+  const isZip = head.subarray(0, 4).equals(Buffer.from([0x50, 0x4b, 0x03, 0x04])); // DOCX is a ZIP package
+  const isPdfName = file.originalname.toLowerCase().endsWith('.pdf');
+  const isDocxName = file.originalname.toLowerCase().endsWith('.docx');
+  const mime = file.mimetype.toLowerCase();
+  const generic = !mime || mime === 'application/octet-stream';
+  if ((!isPdfName && !isDocxName) || (!generic &&
+      mime !== (isPdfName ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'))) {
+    throw new ApiError(400, 'The file type does not match its extension.');
+  }
+  if (isPdfName && !isPdf) {
     throw new ApiError(400, 'The file content is not a valid PDF.');
   }
-  if (file.originalname.toLowerCase().endsWith('.docx') && !isZip) {
+  if (isDocxName && !isZip) {
     throw new ApiError(400, 'The file content is not a valid DOCX document.');
   }
 }
@@ -36,15 +44,15 @@ export async function createResume(userId: string, file: UploadedFile): Promise<
   const ext = file.originalname.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx';
   const storageName = `${crypto.randomUUID()}.${ext}`;
   const userDir = path.join(uploadRoot(), userId);
-  await fs.mkdir(userDir, { recursive: true });
+  await fs.mkdir(userDir, { recursive: true, mode: 0o700 });
   const filePath = path.join(userDir, storageName);
-  await fs.writeFile(filePath, file.buffer);
+  await fs.writeFile(filePath, file.buffer, { mode: 0o600, flag: 'wx' });
 
   try {
     const extraction = await extractFromBuffer(file.originalname, file.buffer, file.mimetype);
     const resume = await Resume.create({
       user: userId,
-      originalName: file.originalname,
+      originalName: path.posix.basename(path.win32.basename(file.originalname)).replace(/[\x00-\x1f\x7f]/g, '').slice(0, 200) || `resume.${ext}`,
       storageName,
       mimeType: file.mimetype,
       size: file.size,

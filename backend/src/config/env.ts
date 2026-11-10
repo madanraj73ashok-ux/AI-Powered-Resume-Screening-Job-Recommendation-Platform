@@ -13,6 +13,11 @@ function readPort(): number {
   return Number.isInteger(parsed) && parsed > 0 && parsed <= 65535 ? parsed : 4000;
 }
 
+function readInt(value: string | undefined, fallback: number, min: number, max: number): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= min && parsed <= max ? parsed : fallback;
+}
+
 export const env = {
   nodeEnv,
   isTest: nodeEnv === 'test',
@@ -28,6 +33,17 @@ export const env = {
   uploadDir: process.env.UPLOAD_DIR ?? 'uploads',
   maxUploadMb: Number(process.env.MAX_UPLOAD_MB ?? 5),
   localEmbeddingsEnabled: (process.env.LOCAL_EMBEDDINGS_ENABLED ?? 'false') === 'true',
+
+  // ---------- Job discovery (real public job boards only) ----------
+  // Discovery is the only feature that uses the internet: it reads public
+  // company job boards. No vacancy is ever fabricated or auto-applied to.
+  jobDiscoveryEnabled: (process.env.JOB_DISCOVERY_ENABLED ?? 'true') !== 'false',
+  jobRefreshMinutes: readInt(process.env.JOB_REFRESH_MINUTES, 360, 5, 1440),
+  // Slow consumer links have been measured at ~15-20s per board response,
+  // so the default allows 30s; override with JOB_PROVIDER_TIMEOUT_MS.
+  jobProviderTimeoutMs: readInt(process.env.JOB_PROVIDER_TIMEOUT_MS, 30000, 1000, 120000),
+  jobMaxPerSource: readInt(process.env.JOB_MAX_PER_SOURCE, 60, 5, 1000),
+  jobMatchLimit: readInt(process.env.JOB_MATCH_LIMIT, 300, 10, 1000),
 };
 
 export function assertEnv(): void {

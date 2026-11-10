@@ -238,14 +238,14 @@ export default function DashboardPage() {
                       <span className="text-slate-700">{f.finding}</span>
                       <Badge
                         color={
-                          f.status === 'Verified Claims Recorded'
+                          f.status === 'Verified Claims Recorded' || f.status === 'Supported by resume text'
                             ? 'green'
                             : f.status === 'Discrepancies Require Review'
                               ? 'red'
                               : 'amber'
                         }
                       >
-                        {f.status}
+                        {f.status === 'Verified Claims Recorded' ? 'Supported by resume text' : f.status}
                       </Badge>
                     </li>
                   ))}

@@ -12,6 +12,7 @@ import { listResumes, Resume, formatDate } from '../api/resumes';
 import { Alert, Badge, Button, Card, EmptyState, SectionTitle, Spinner } from '../components/ui';
 import { useToast } from '../components/Toast';
 import { getVoiceConfiguration, VoiceConfiguration } from '../api/liveInterviews';
+import { DOMAIN_OPTIONS } from '../components/DomainReview';
 
 const DIFFICULTY_HELP: Record<Difficulty, string> = {
   Beginner: 'Fundamentals and definitions. Best for a first run.',
@@ -37,6 +38,8 @@ export default function InterviewStartPage() {
   const [duration, setDuration] = useState(20);
   const [rate, setRate] = useState(1);
   const [voice, setVoice] = useState('lessac');
+  const [domains, setDomains] = useState<string[]>([]);
+  useEffect(() => { setDomains(resumes.find(item => item.id === resumeId)?.confirmedDomains ?? []); }, [resumeId, resumes]);
   const [voiceConfig, setVoiceConfig] = useState<VoiceConfiguration | null>(null);
   useEffect(() => { void getVoiceConfiguration().then(config => {
     setVoiceConfig(config); setVoice(config.voices[0]?.id ?? 'lessac');
@@ -66,7 +69,7 @@ export default function InterviewStartPage() {
     try {
       const { session } = await startInterview({ resumeId, difficulty,
         questionCount: mode === 'voice' ? (duration === 10 ? 6 : duration === 20 ? 9 : 12) : questionCount,
-        mode, interviewType, targetDurationMinutes: duration, speakingRate: rate, voice });
+        mode, interviewType, targetDurationMinutes: duration, speakingRate: rate, voice, confirmedDomains: domains });
       toast.show('Interview started.', 'success');
       navigate(mode === 'voice' ? `/interview/live/${session.id}` : `/interview/${session.id}`);
     } catch (err) {
@@ -139,6 +142,12 @@ export default function InterviewStartPage() {
             <p className="mt-2 text-xs">Questions are spoken, then your microphone listens. Clear transcripts can auto-submit after a four-second review window.
               Uncertain recognition always needs review. No audio/video is recorded. Duration is a target, not a fixed question count.</p>
           </div>}
+          <fieldset className="my-4"><legend className="label">Interview domains (up to three)</legend>
+            <div className="grid gap-2 sm:grid-cols-2">{DOMAIN_OPTIONS.map(([value, label]) => <label key={value} className="flex gap-2 text-sm text-slate-700">
+              <input type="checkbox" checked={domains.includes(value)} disabled={!domains.includes(value) && domains.length >= 3}
+                onChange={e => setDomains(old => e.target.checked ? [...old, value] : old.filter(x => x !== value))} />{label}
+            </label>)}</div><p className="mt-2 text-xs text-slate-500">Choose the area you want to discuss. If none is selected, the existing resume question bank is used.</p>
+          </fieldset>
           <div className="grid gap-4 md:grid-cols-3">
             <div>
               <label className="label" htmlFor="int-resume">

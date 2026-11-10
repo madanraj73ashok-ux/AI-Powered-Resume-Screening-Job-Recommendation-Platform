@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import io
 import re
+import zipfile
+from pathlib import PurePosixPath
 from typing import List, Optional
 
 import pdfplumber
@@ -44,6 +46,40 @@ class ExtractionError(Exception):
     """Raised when a document cannot be parsed."""
 
 
+MAX_DOCUMENT_TEXT = 1_000_000
+MAX_PDF_PAGES = 100
+MAX_DOCX_ENTRIES = 500
+MAX_DOCX_UNCOMPRESSED = 20 * 1024 * 1024
+
+
+def _validate_docx_archive(data: bytes) -> None:
+    """Check ZIP structure and expansion before python-docx opens the package."""
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as archive:
+            entries = archive.infolist()
+            if len(entries) > MAX_DOCX_ENTRIES:
+                raise ExtractionError('DOCX contains too many archive entries.')
+            names = set()
+            total = 0
+            for entry in entries:
+                name = entry.filename
+                parts = PurePosixPath(name).parts
+                if (not name or '\\' in name or name.startswith('/') or '..' in parts
+                        or ':' in name or name in names or entry.flag_bits & 1):
+                    raise ExtractionError('DOCX contains unsafe or encrypted archive entries.')
+                names.add(name)
+                if name.lower().endswith('vbaproject.bin'):
+                    raise ExtractionError('Macro-enabled documents are not accepted.')
+                total += entry.file_size
+                if (entry.file_size > 10 * 1024 * 1024 or total > MAX_DOCX_UNCOMPRESSED
+                        or (entry.file_size > 1024 * 1024 and entry.file_size > max(1, entry.compress_size) * 100)):
+                    raise ExtractionError('DOCX archive exceeds safe expansion limits.')
+            if '[Content_Types].xml' not in names or 'word/document.xml' not in names:
+                raise ExtractionError('DOCX package is missing required document parts.')
+    except (zipfile.BadZipFile, OSError) as exc:
+        raise ExtractionError('The DOCX archive is invalid.') from exc
+
+
 def extract_pdf(data: bytes) -> List[dict]:
     """Return [{'page': int, 'text': str}] preserving page numbers."""
     try:
@@ -51,8 +87,14 @@ def extract_pdf(data: bytes) -> List[dict]:
         with pdfplumber.open(io.BytesIO(data)) as pdf:
             if len(pdf.pages) == 0:
                 raise ExtractionError("The PDF contains no pages.")
+            if len(pdf.pages) > MAX_PDF_PAGES:
+                raise ExtractionError("The PDF contains too many pages.")
+            total_chars = 0
             for i, page in enumerate(pdf.pages, start=1):
                 text = page.extract_text() or ""
+                total_chars += len(text)
+                if total_chars > MAX_DOCUMENT_TEXT:
+                    raise ExtractionError("The document contains too much extracted text.")
                 pages.append({"page": i, "text": text})
         return pages
     except ExtractionError:
@@ -64,10 +106,15 @@ def extract_pdf(data: bytes) -> List[dict]:
 def extract_docx(data: bytes) -> List[dict]:
     """Return [{'page': 1, 'text': str}] for a DOCX (single logical page)."""
     try:
+        _validate_docx_archive(data)
         doc = Document(io.BytesIO(data))
         paragraphs = [p.text for p in doc.paragraphs if p.text and p.text.strip()]
         text = "\n".join(paragraphs)
+        if len(text) > MAX_DOCUMENT_TEXT:
+            raise ExtractionError("The document contains too much extracted text.")
         return [{"page": 1, "text": text}]
+    except ExtractionError:
+        raise
     except Exception as exc:
         raise ExtractionError(f"Could not read the DOCX file: {exc}") from exc
 
@@ -202,6 +249,8 @@ def parse_profile(pages: List[dict]) -> dict:
         if len(text) >= 4:
             certifications.append({"text": text, "evidence": {"page": page, "quote": text[:160]}})
 
+    from .skills import detect_skills, normalize_skill
+
     # --- skills explicitly listed in the skills section (e.g. "Java - Expert; SQL")
     section_skills = []
     for text, page in section_lines("skills"):
@@ -218,9 +267,9 @@ def parse_profile(pages: List[dict]) -> dict:
             )
             level = None
             if level_match:
-                level = part[level_match.end() :].strip(" -–—") or None
-            skill_name = (level_match.group(1) if level_match else part).strip()
-            if not (2 <= len(skill_name) <= 45):
+                level = level_match.group(2)
+            skill_name = normalize_skill((level_match.group(1) if level_match else part).strip())
+            if not skill_name or not (2 <= len(skill_name) <= 45):
                 continue
             if re.match(r"(?i)^(skills|technical skills|core competencies)$", skill_name):
                 continue
@@ -234,32 +283,33 @@ def parse_profile(pages: List[dict]) -> dict:
                 }
             )
 
-    from .skills import detect_skills  # local import to avoid cycle
-
     # A single-letter name initial must not become a programming-language claim.
-    skill_text = full_text.replace(name, "") if name else full_text
+    skill_text = full_text.replace(name, " " * len(name)) if name else full_text
     detected = detect_skills(skill_text)
-
-    def _mk_evidence(snippet):
-        """Convert a raw evidence string into {page, quote} using page texts."""
-        if not snippet:
-            return None
-        head = snippet[:30]
-        for p in pages:
-            if head and head in p["text"]:
-                return {"page": p["page"], "quote": snippet[:160]}
-        return {"page": 1, "quote": snippet[:160]}
-
+    # Scan pages separately so evidence keeps its actual page and exact source
+    # text even when a candidate's name was masked for skill detection.
+    page_evidence = {}
+    for page in pages:
+        original = page['text']
+        masked = original.replace(name, ' ' * len(name)) if name else original
+        for hit in detect_skills(masked):
+            excerpt = hit.get('evidence') or ''
+            offset = masked.find(excerpt)
+            if offset >= 0:
+                page_evidence.setdefault(hit['skill'], {'page': page['page'], 'quote': original[offset:offset + len(excerpt)][:160]})
     for d in detected:
-        d["evidence"] = _mk_evidence(d.get("evidence"))
+        d["evidence"] = page_evidence.get(d['skill'])
     # merge: dictionary hits win; section skills add anything not already covered
-    known = {d["skill"].lower() for d in detected}
+    known = {d["skill"].lower(): d for d in detected}
     for s in section_skills:
-        if s["skill"].lower() not in known and not any(
-            s["skill"].lower() in k or k in s["skill"].lower() for k in known
-        ):
+        key = s['skill'].lower()
+        if key not in known:
             detected.append(s)
-            known.add(s["skill"].lower())
+            known[key] = s
+        else:
+            # An explicit skill-list mention is a more precise source than a
+            # broad dictionary context which might overlap an education line.
+            known[key]['evidence'] = s['evidence']
 
     return {
         "name": name,
@@ -291,11 +341,9 @@ def _page_of(pages: List[dict], needle: str) -> int:
 def extract_document(filename: str, data: bytes, mime: str) -> dict:
     """Dispatch by extension, extract text and parse a structured profile."""
     name = (filename or "").lower()
-    if name.endswith(".pdf") or mime == "application/pdf":
+    if name.endswith(".pdf") and data.startswith(b'%PDF-'):
         pages = extract_pdf(data)
-    elif name.endswith(".docx") or mime in (
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ):
+    elif name.endswith(".docx") and data.startswith(b'PK\x03\x04'):
         pages = extract_docx(data)
     else:
         raise ExtractionError("Unsupported file type. Only PDF and DOCX files are accepted.")

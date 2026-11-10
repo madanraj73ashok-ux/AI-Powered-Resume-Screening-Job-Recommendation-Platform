@@ -129,12 +129,21 @@ describe('local live interview API', () => {
     expect(final.text).toBe('Synthetic protocol test transcript.');
     expect((await InterviewSession.findById(own.id))?.answers).toHaveLength(0);
     expect((await InterviewSession.findById(own.id))?.live?.draftTranscript).toBe(final.text);
+    expect((await own.agent.put(`/api/interviews/${own.id}/live/transcript`).send({ questionId: 'live-q1', text: 'Corrected technical answer.' })).status).toBe(200);
+    const saved = await InterviewSession.findById(own.id);
+    expect(saved?.live?.originalTranscript).toBe(final.text);
+    expect(saved?.live?.draftTranscript).toBe('Corrected technical answer.');
     await new Promise<void>(resolve => { audio.ws.once('close', resolve); audio.ws.close(); });
     const again = socketInbox(`${base}/api/interviews/${own.id}/live/audio`, own.cookie);
     await again.wait('ready');
     again.ws.send(JSON.stringify({ type: 'start', questionId: 'live-q1' })); await again.wait('listening');
     const closed = new Promise<number>(resolve => again.ws.once('close', code => resolve(code)));
     again.ws.send(Buffer.alloc(32769)); expect(await closed).toBe(1009);
+    expect((await own.agent.post(`/api/interviews/${own.id}/answers`).send({ questionId: 'live-q1', answer: 'Corrected technical answer.' })).status).toBe(200);
+    const answered = await InterviewSession.findById(own.id);
+    expect(answered?.answers[0].originalTranscript).toBe(final.text);
+    expect(answered?.answers[0].text).toBe('Corrected technical answer.');
+    expect(answered?.answers[0].transcriptEdited).toBe(true);
   });
 
   it('rejects missing cookies, hostile origins, and another candidate on WebSocket upgrade', async () => {

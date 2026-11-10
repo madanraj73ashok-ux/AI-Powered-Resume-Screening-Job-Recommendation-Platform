@@ -5,8 +5,7 @@ Produces claim-level findings with: original claim, evidence quote, method,
 finding, confidence (only when meaningful), reason, suggested follow-up
 question and a reviewer status.
 
-IMPORTANT: findings never label a candidate fraudulent. "Verified" always
-means "supported by the resume text", never externally proven.
+IMPORTANT: findings describe evidence in the resume, not external verification.
 """
 
 from __future__ import annotations
@@ -29,7 +28,7 @@ STATUS_READY = "Ready for Assessment"
 STATUS_NEEDS_REVIEW = "Needs Review"
 STATUS_EVIDENCE_REQUESTED = "Evidence Requested"
 STATUS_INCOMPLETE = "Verification Incomplete"
-STATUS_VERIFIED_RECORDED = "Verified Claims Recorded"
+STATUS_VERIFIED_RECORDED = "Supported by resume text"
 STATUS_DISCREPANCY = "Discrepancies Require Review"
 
 DATE_RANGE_RE = re.compile(
@@ -75,6 +74,8 @@ def analyze(profile: dict, full_text: str) -> dict:
     skill_names = {s["skill"] for s in skills}
     experience = profile.get("experience") or []
     projects = profile.get("projects") or []
+    responsibilities = profile.get("responsibilities") or []
+    certifications = profile.get("certifications") or []
     education = profile.get("education") or []
     lowered = full_text.lower()
 
@@ -139,13 +140,20 @@ def analyze(profile: dict, full_text: str) -> dict:
             window = lowered[max(0, pos - 80): pos + 80]
             if "expert" not in window or window.count(skill.lower()) > 1:
                 outside += 1
-        contextual = any(alias_pattern.search(str(item.get("text", "")).lower())
-                         for item in projects + experience)
+        references = []
+        for section, label in ((projects, 'Project-supported'), (experience + responsibilities, 'Experience-supported'),
+                               (certifications, 'Certification mentioned')):
+            for item in section:
+                if alias_pattern.search(str(item.get('text', '')).lower()):
+                    references.append({'kind': label, 'evidence': item.get('evidence'), 'excerpt': str(item.get('text', ''))[:160]})
+        contextual = any(ref['kind'] != 'Certification mentioned' for ref in references)
         if len(occurrences) <= 1 and not contextual:
             findings.append(_finding(
                 type="skill_without_context",
                 claim=f"Skill claim: {skill}",
                 evidence=s.get("evidence"),
+                evidenceCategories=['Mentioned'] + list(dict.fromkeys(ref['kind'] for ref in references)),
+                supportingEvidence=references,
                 method="dictionary match with context check",
                 finding=f"'{skill}' has at most one direct mention and needs clearer supporting evidence.",
                 reason="No matching project or role context was detected. This can be a parsing limitation; review the source document.",
@@ -157,7 +165,9 @@ def analyze(profile: dict, full_text: str) -> dict:
             findings.append(_finding(
                 type="skill_with_evidence",
                 claim=f"Skill claim: {skill}",
-                evidence=s.get("evidence"),
+                evidence=(references[0].get('evidence') or s.get('evidence')) if references else s.get('evidence'),
+                evidenceCategories=['Mentioned'] + list(dict.fromkeys(ref['kind'] for ref in references)),
+                supportingEvidence=references,
                 method="dictionary match with context check",
                 finding=f"'{skill}' is supported by {len(occurrences)} mentions in the resume text.",
                 reason="A project/role mention or repeated text supports this claim within the document only, not by external verification.",
@@ -277,8 +287,8 @@ def analyze(profile: dict, full_text: str) -> dict:
         "evidenceRequested": sum(1 for f in findings if f["status"] == STATUS_EVIDENCE_REQUESTED),
         "note": (
             "These findings are produced by local deterministic analysis of the resume "
-            "document only. 'Verified' means supported by the resume text, not "
-            "independently confirmed. No external verification services were used."
+            "document only. Supported claims are not independently confirmed. "
+            "No external verification services were used."
         ),
     }
     return {"summary": summary, "findings": findings}

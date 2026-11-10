@@ -11,15 +11,21 @@ export class InterviewMedia {
   private meterTimer: number | null = null;
   private playVersion = 0;
   private captureVersion = 0;
+  private output: GainNode | null = null;
+  private outputMuted = false;
   listening = false;
 
   constructor(private onPCM: (buffer: ArrayBuffer, level: number) => void,
     private onOutputLevel: (level: number) => void) {}
 
-  async open() {
-    if (!navigator.mediaDevices?.getUserMedia || !window.AudioContext) throw new Error('Microphone capture is unavailable. Use localhost or HTTPS and a supported browser.');
+  async prepareAudio() {
+    if (!window.AudioContext) throw new Error('Audio playback is unavailable in this browser.');
     if (!this.context) this.context = new AudioContext();
     await this.context.resume();
+  }
+  async open() {
+    if (!navigator.mediaDevices?.getUserMedia || !window.AudioContext) throw new Error('Microphone capture is unavailable. Use localhost or HTTPS and a supported browser.');
+    await this.prepareAudio();
     if (this.stream) return;
     const version = ++this.captureVersion;
     let expired = false;
@@ -40,14 +46,15 @@ export class InterviewMedia {
     }
     this.stream = stream;
     try {
-      await this.context.audioWorklet.addModule(captureWorkletURL);
-      this.source = this.context.createMediaStreamSource(stream);
-      this.worklet = new AudioWorkletNode(this.context, 'pcm-capture');
-      this.sink = this.context.createGain(); this.sink.gain.value = 0;
+      const context = this.context!;
+      await context.audioWorklet.addModule(captureWorkletURL);
+      this.source = context.createMediaStreamSource(stream);
+      this.worklet = new AudioWorkletNode(context, 'pcm-capture');
+      this.sink = context.createGain(); this.sink.gain.value = 0;
       this.worklet.port.onmessage = event => {
         if (this.listening) this.onPCM(event.data.buffer, event.data.level);
       };
-      this.source.connect(this.worklet); this.worklet.connect(this.sink); this.sink.connect(this.context.destination);
+      this.source.connect(this.worklet); this.worklet.connect(this.sink); this.sink.connect(context.destination);
       this.setListening(false);
     } catch (error) { this.releaseMicrophone(); throw error; }
   }
@@ -66,7 +73,8 @@ export class InterviewMedia {
     const buffer = await context.decodeAudioData(bytes.slice(0));
     if (version !== this.playVersion || this.context !== context) return;
     const source = context.createBufferSource(), analyser = context.createAnalyser();
-    analyser.fftSize = 256; source.buffer = buffer; source.connect(analyser); analyser.connect(context.destination);
+    const output = context.createGain(); output.gain.value = this.outputMuted ? 0 : 1; this.output = output;
+    analyser.fftSize = 256; source.buffer = buffer; source.connect(analyser); analyser.connect(output); output.connect(context.destination);
     this.playback = source;
     const samples = new Float32Array(analyser.fftSize);
     this.meterTimer = window.setInterval(() => {
@@ -76,7 +84,7 @@ export class InterviewMedia {
     return new Promise<void>(resolve => {
       this.resolvePlayback = resolve;
       source.onended = () => {
-        source.disconnect(); analyser.disconnect();
+        source.disconnect(); analyser.disconnect(); output.disconnect();
         if (this.playback === source) { this.playback = null; this.clearMeter(); this.resolvePlayback = null; }
         resolve();
       };
@@ -89,7 +97,9 @@ export class InterviewMedia {
     const source = this.playback; this.playback = null;
     if (source) { source.onended = null; try { source.stop(); source.disconnect(); } catch { /* Already ended. */ } }
     this.clearMeter(); this.resolvePlayback?.(); this.resolvePlayback = null;
+    this.output?.disconnect(); this.output = null;
   }
+  setOutputMuted(value: boolean) { this.outputMuted = value; if (this.output) this.output.gain.value = value ? 0 : 1; }
   releaseMicrophone() {
     this.captureVersion++;
     this.setListening(false); this.stream?.getTracks().forEach(track => track.stop()); this.stream = null;

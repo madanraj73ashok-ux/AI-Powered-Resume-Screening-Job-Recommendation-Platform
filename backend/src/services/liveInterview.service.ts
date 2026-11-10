@@ -44,13 +44,14 @@ export async function liveState(id: string, userId: string, kind: 'question' | '
     events: await InterviewEvent.find({ session: id, user: userId }).sort({ at: 1 }).limit(500).lean() };
 }
 
-export async function saveDraft(id: string, userId: string, input: z.infer<typeof draftSchema>) {
+export async function saveDraft(id: string, userId: string, input: z.infer<typeof draftSchema>, source: 'candidate' | 'recognition' = 'candidate') {
   const session = await requireLive(id, userId);
   const q = session.questions[session.currentIndex];
   if (!q || q.id !== input.questionId) throw new ApiError(409, 'Question changed. Reload the saved session.');
   const updated = await InterviewSession.updateOne({ _id: id, user: userId, status: 'in_progress',
     currentIndex: session.currentIndex, __v: session.get('__v') },
-  { $set: { live: { draftQuestionId: q.id, draftTranscript: input.text.trim(), reviewRequired: input.reviewRequired } } });
+  { $set: { 'live.draftQuestionId': q.id, 'live.draftTranscript': input.text.trim(), 'live.reviewRequired': input.reviewRequired,
+    ...(source === 'recognition' ? { 'live.originalTranscript': input.text.trim() } : {}) } });
   if (!updated.matchedCount) throw new ApiError(409, 'Question changed. Reload the saved session.');
 }
 

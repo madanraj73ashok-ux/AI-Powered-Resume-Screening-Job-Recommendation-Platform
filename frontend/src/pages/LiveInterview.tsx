@@ -5,6 +5,7 @@ import { InterviewerAvatar } from '../live/InterviewerAvatar';
 import { useLiveInterview } from '../live/useLiveInterview';
 import { PHASE_LABELS } from '../live/state';
 import { AudioWaveform } from '../live/AudioWaveform';
+import { DevicePrecheck } from '../live/DevicePrecheck';
 import '../live/live.css';
 
 function time(seconds: number) { return `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`; }
@@ -38,6 +39,7 @@ export default function LiveInterviewPage() {
     {fallbackFailed && <div role="alert" className="call-notice">Transcript edits could not be saved. Copy your visible answer before leaving, or retry when connected.{' '}
       <Link className="underline" to={`/interview/${id}`}>Continue to text mode</Link></div>}
     {targetReached && <div className="call-notice">You have reached the target duration. You can finish now or continue at your own pace.</div>}
+    {live.data && <DevicePrecheck id={id} disabled={!['IDLE', 'ERROR'].includes(live.phase)} />}
     {!live.data && <p role="status">Loading your saved interview…</p>}
 
     <div className="call-grid">
@@ -78,6 +80,7 @@ export default function LiveInterviewPage() {
         {['PAUSED', 'RECONNECTING', 'ERROR'].includes(live.phase) && question ? <button className="call-button primary" onClick={() => void live.join()}>Rejoin / resume</button> : null}
       </>}
       <button className="call-button text-button" disabled={live.phase === 'EVALUATING'} onClick={() => void fallback()}>Use text mode</button>
+      {joined && <button className="call-button secondary" disabled={busy} onClick={live.pause}>I need a moment</button>}
       {!question && live.data && <button className="call-button primary" onClick={() => setConfirmEnd(true)}>Finish &amp; view report</button>}
     </footer>
     <p className="call-disclosure">Local speech · near-real-time chunks · illustrated avatar · curated, resume-based questions. No audio/video recording. Camera events never affect your score.</p>

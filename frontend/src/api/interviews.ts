@@ -37,6 +37,8 @@ export interface InterviewQuestion {
 export interface InterviewAnswer {
   questionId: string;
   text: string;
+  originalTranscript?: string;
+  transcriptEdited?: boolean;
   marksAwarded: number;
   maxMarks: number;
   percentage: number;
@@ -131,6 +133,7 @@ export interface StartInterviewInput {
   voice?: string;
   speakingRate?: number;
   adaptiveDifficulty?: boolean;
+  confirmedDomains?: string[];
 }
 
 export async function startInterview(

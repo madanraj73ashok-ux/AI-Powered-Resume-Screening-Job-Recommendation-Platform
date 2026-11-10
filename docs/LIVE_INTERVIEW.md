@@ -229,10 +229,10 @@ synthetic 10.5-second answer and a persisted, explicitly confirmed transcript.
 
 ## Checkpoint status
 
-Implementation and synthetic-speech integration are present. Physical microphone,
-speaker playback and camera accuracy are not claimed verified: the browser check
-exposed a microphone asset delivery failure, which has been corrected and the
-served JavaScript content verified. Rejoin after updating/reloading the app.
-Permission denial, timeout, late stream cleanup and text fallback are covered by
-automated tests. A real human voice/device session remains an explicit verification
-step. Phase 5 job discovery/matching is a separate pending task in this checkpoint.
+Implementation and synthetic-speech integration are present. The earlier microphone
+asset delivery failure was corrected, and a user subsequently reported that a spoken
+greeting appeared in the transcript and received a spoken reply. This confirms only
+that reported interaction, not a complete human interview, camera accuracy, or
+general speech performance. Permission denial, timeout, late stream cleanup and
+text fallback are covered by automated tests. See [Phase 5](PHASE5.md) for the
+job-matching checkpoint and its remaining limitations.

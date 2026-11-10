@@ -1,0 +1,754 @@
+{
+  "version": "1.1.0",
+  "rubricVersion": "concept-rubric-1.0",
+  "domains": {
+    "software_it": {
+      "label": "Software and IT",
+      "skills": [
+        "Python",
+        "JavaScript",
+        "TypeScript",
+        "Java",
+        "React",
+        "Node.js",
+        "REST APIs",
+        "Git",
+        "Unit Testing"
+      ],
+      "keywords": [
+        "software",
+        "backend",
+        "frontend",
+        "web application",
+        "API",
+        "database"
+      ],
+      "questions": [
+        {
+          "id": "software-b1",
+          "difficulty": "Beginner",
+          "text": "How would you validate user input before saving it through an API? Explain one example.",
+          "concepts": [
+            "validation",
+            "types",
+            "error handling",
+            "example"
+          ]
+        },
+        {
+          "id": "software-i1",
+          "difficulty": "Intermediate",
+          "text": "An API sometimes creates duplicate records after a retry. How would you investigate and prevent this?",
+          "concepts": [
+            "idempotency",
+            "unique constraint",
+            "retry",
+            "testing"
+          ]
+        },
+        {
+          "id": "software-a1",
+          "difficulty": "Advanced",
+          "text": "Design a reliable background processing service. How would you handle duplicate delivery, failures and observability?",
+          "concepts": [
+            "queue",
+            "idempotency",
+            "retry",
+            "monitoring",
+            "trade-offs"
+          ]
+        },
+        {
+          "id": "software-b2",
+          "difficulty": "Beginner",
+          "text": "Explain how an HTTP request reaches a web application and how the response is returned.",
+          "concepts": [
+            "request",
+            "server",
+            "HTTP",
+            "response"
+          ]
+        },
+        {
+          "id": "software-b3",
+          "difficulty": "Beginner",
+          "text": "How would you find and fix an error reported by a user in a small application?",
+          "concepts": [
+            "reproduce",
+            "logs",
+            "diagnosis",
+            "testing"
+          ]
+        },
+        {
+          "id": "software-i2",
+          "difficulty": "Intermediate",
+          "text": "How would you add authentication and authorization to a service that stores private user data?",
+          "concepts": [
+            "authentication",
+            "authorization",
+            "sessions",
+            "access control"
+          ]
+        },
+        {
+          "id": "software-i3",
+          "difficulty": "Intermediate",
+          "text": "A feature works locally but fails after deployment. How would you investigate the difference?",
+          "concepts": [
+            "configuration",
+            "logs",
+            "reproduction",
+            "dependencies"
+          ]
+        },
+        {
+          "id": "software-a2",
+          "difficulty": "Advanced",
+          "text": "How would you make a schema migration safe when several versions of an application run at once?",
+          "concepts": [
+            "compatibility",
+            "migration",
+            "rollback",
+            "monitoring"
+          ]
+        },
+        {
+          "id": "software-a3",
+          "difficulty": "Advanced",
+          "text": "Design an API that handles a burst of traffic without losing requests or overwhelming its database.",
+          "concepts": [
+            "capacity",
+            "queue",
+            "backpressure",
+            "database",
+            "monitoring"
+          ]
+        }
+      ]
+    },
+    "robotics_automation": {
+      "label": "Robotics and automation",
+      "skills": [
+        "Arduino",
+        "PLC",
+        "Python",
+        "Embedded C",
+        "SolidWorks"
+      ],
+      "keywords": [
+        "robot",
+        "robotics",
+        "automation",
+        "motor",
+        "ultrasonic",
+        "sensor integration",
+        "ROS",
+        "control"
+      ],
+      "questions": [
+        {
+          "id": "robotics-b1",
+          "difficulty": "Beginner",
+          "text": "A small mobile robot uses an ultrasonic sensor and DC motors. How can it detect an obstacle and respond safely?",
+          "concepts": [
+            "distance",
+            "sensor",
+            "threshold",
+            "motor driver",
+            "safety"
+          ]
+        },
+        {
+          "id": "robotics-i1",
+          "difficulty": "Intermediate",
+          "text": "A robot repeatedly oscillates around its target position. How would you investigate sensing, timing and controller behavior?",
+          "concepts": [
+            "feedback",
+            "calibration",
+            "sampling",
+            "controller",
+            "testing"
+          ]
+        },
+        {
+          "id": "robotics-a1",
+          "difficulty": "Advanced",
+          "text": "How would you design fault handling for a fleet of robots that must remain safe when sensing or network communication fails?",
+          "concepts": [
+            "failure modes",
+            "local control",
+            "watchdog",
+            "safe state",
+            "validation"
+          ]
+        },
+        {
+          "id": "robotics-b2",
+          "difficulty": "Beginner",
+          "text": "What is the role of a motor driver when connecting a controller to a motor?",
+          "concepts": [
+            "current",
+            "driver",
+            "controller",
+            "power",
+            "safety"
+          ]
+        },
+        {
+          "id": "robotics-b3",
+          "difficulty": "Beginner",
+          "text": "How would you test whether a distance sensor is giving reliable readings before using it on a robot?",
+          "concepts": [
+            "measurement",
+            "calibration",
+            "test cases",
+            "noise"
+          ]
+        },
+        {
+          "id": "robotics-i2",
+          "difficulty": "Intermediate",
+          "text": "How would you troubleshoot a robot that turns consistently farther than commanded?",
+          "concepts": [
+            "calibration",
+            "motor",
+            "feedback",
+            "measurement",
+            "testing"
+          ]
+        },
+        {
+          "id": "robotics-i3",
+          "difficulty": "Intermediate",
+          "text": "How would you integrate sensor readings and actuator commands in a repeating control loop?",
+          "concepts": [
+            "sampling",
+            "feedback",
+            "timing",
+            "actuator",
+            "safety"
+          ]
+        },
+        {
+          "id": "robotics-a2",
+          "difficulty": "Advanced",
+          "text": "A robot must continue safely after an encoder fails. Describe detection, response and validation.",
+          "concepts": [
+            "fault detection",
+            "encoder",
+            "safe state",
+            "validation"
+          ]
+        },
+        {
+          "id": "robotics-a3",
+          "difficulty": "Advanced",
+          "text": "How would you assess and improve a robot control system whose response varies under different loads?",
+          "concepts": [
+            "load",
+            "model",
+            "feedback",
+            "measurement",
+            "trade-offs"
+          ]
+        }
+      ]
+    },
+    "electronics_embedded": {
+      "label": "Electronics and embedded systems",
+      "skills": [
+        "Embedded C",
+        "Arduino",
+        "C++",
+        "PLC"
+      ],
+      "keywords": [
+        "electronics",
+        "embedded",
+        "microcontroller",
+        "GPIO",
+        "interrupt",
+        "ADC",
+        "circuit",
+        "firmware"
+      ],
+      "questions": [
+        {
+          "id": "embedded-b1",
+          "difficulty": "Beginner",
+          "text": "Explain how a microcontroller reads an analog sensor and uses the result to control a digital output.",
+          "concepts": [
+            "ADC",
+            "sampling",
+            "GPIO",
+            "threshold"
+          ]
+        },
+        {
+          "id": "embedded-i1",
+          "difficulty": "Intermediate",
+          "text": "When would you use an interrupt instead of polling? Explain how you would keep an interrupt routine reliable.",
+          "concepts": [
+            "latency",
+            "interrupt",
+            "shared data",
+            "bounded execution",
+            "testing"
+          ]
+        },
+        {
+          "id": "embedded-a1",
+          "difficulty": "Advanced",
+          "text": "An embedded device intermittently misses its timing deadline. How would you diagnose and redesign the critical path?",
+          "concepts": [
+            "worst-case timing",
+            "measurement",
+            "priority",
+            "buffering",
+            "trade-offs"
+          ]
+        },
+        {
+          "id": "embedded-b2",
+          "difficulty": "Beginner",
+          "text": "What is the difference between a digital input and a digital output on a microcontroller?",
+          "concepts": [
+            "input",
+            "output",
+            "GPIO",
+            "voltage"
+          ]
+        },
+        {
+          "id": "embedded-b3",
+          "difficulty": "Beginner",
+          "text": "How would you safely connect and test a sensor with a microcontroller?",
+          "concepts": [
+            "voltage",
+            "ground",
+            "pin configuration",
+            "measurement"
+          ]
+        },
+        {
+          "id": "embedded-i2",
+          "difficulty": "Intermediate",
+          "text": "A sensor reading is noisy and occasionally jumps. How would you identify and reduce the noise?",
+          "concepts": [
+            "measurement",
+            "filtering",
+            "grounding",
+            "sampling",
+            "validation"
+          ]
+        },
+        {
+          "id": "embedded-i3",
+          "difficulty": "Intermediate",
+          "text": "How would you exchange data reliably between two embedded devices over a serial connection?",
+          "concepts": [
+            "framing",
+            "baud rate",
+            "error detection",
+            "timeout",
+            "testing"
+          ]
+        },
+        {
+          "id": "embedded-a2",
+          "difficulty": "Advanced",
+          "text": "How would you recover an embedded device safely if its firmware becomes unresponsive?",
+          "concepts": [
+            "watchdog",
+            "reset",
+            "safe state",
+            "fault logging"
+          ]
+        },
+        {
+          "id": "embedded-a3",
+          "difficulty": "Advanced",
+          "text": "How would you design and validate a low-power embedded device that must wake on sensor events?",
+          "concepts": [
+            "sleep mode",
+            "interrupt",
+            "power budget",
+            "latency",
+            "measurement"
+          ]
+        }
+      ]
+    },
+    "data_analytics": {
+      "label": "Data analytics",
+      "skills": [
+        "Python",
+        "SQL",
+        "MySQL",
+        "Power BI",
+        "Excel",
+        "DAX",
+        "Power Query",
+        "Pandas",
+        "NLP",
+        "Data Analysis",
+        "Data Visualization"
+      ],
+      "keywords": [
+        "analytics",
+        "dataset",
+        "dashboard",
+        "sentiment",
+        "data cleaning",
+        "reporting",
+        "visualization"
+      ],
+      "questions": [
+        {
+          "id": "data-b1",
+          "difficulty": "Beginner",
+          "text": "Before building a dashboard from a new dataset, what checks would you perform and why?",
+          "concepts": [
+            "missing values",
+            "duplicates",
+            "data types",
+            "validation"
+          ]
+        },
+        {
+          "id": "data-i1",
+          "difficulty": "Intermediate",
+          "text": "A dashboard total changes unexpectedly when a filter is applied. How would you inspect the data model and calculation?",
+          "concepts": [
+            "relationships",
+            "filter context",
+            "aggregation",
+            "validation"
+          ]
+        },
+        {
+          "id": "data-a1",
+          "difficulty": "Advanced",
+          "text": "How would you design an analytics pipeline whose reports remain trustworthy as schemas and source data change?",
+          "concepts": [
+            "data quality",
+            "schema validation",
+            "lineage",
+            "monitoring",
+            "reconciliation"
+          ]
+        },
+        {
+          "id": "data-b2",
+          "difficulty": "Beginner",
+          "text": "How would you explain the difference between an average and a median to a nontechnical stakeholder?",
+          "concepts": [
+            "mean",
+            "median",
+            "outliers",
+            "example"
+          ]
+        },
+        {
+          "id": "data-b3",
+          "difficulty": "Beginner",
+          "text": "How would you check a spreadsheet for duplicate or missing records before reporting a total?",
+          "concepts": [
+            "duplicates",
+            "missing values",
+            "validation",
+            "reconciliation"
+          ]
+        },
+        {
+          "id": "data-i2",
+          "difficulty": "Intermediate",
+          "text": "A SQL join produces more rows than expected. How would you investigate and correct the result?",
+          "concepts": [
+            "join",
+            "cardinality",
+            "duplicates",
+            "keys",
+            "validation"
+          ]
+        },
+        {
+          "id": "data-i3",
+          "difficulty": "Intermediate",
+          "text": "How would you select a useful chart for comparing a metric across categories over time?",
+          "concepts": [
+            "audience",
+            "comparison",
+            "chart",
+            "time",
+            "limitations"
+          ]
+        },
+        {
+          "id": "data-a2",
+          "difficulty": "Advanced",
+          "text": "Two dashboards report different revenue for the same month. How would you reconcile them?",
+          "concepts": [
+            "definitions",
+            "source data",
+            "filters",
+            "timing",
+            "reconciliation"
+          ]
+        },
+        {
+          "id": "data-a3",
+          "difficulty": "Advanced",
+          "text": "How would you evaluate whether a reported increase reflects a genuine change rather than a data-quality issue?",
+          "concepts": [
+            "baseline",
+            "data quality",
+            "sampling",
+            "comparison",
+            "limitations"
+          ]
+        }
+      ]
+    },
+    "mechanical_core": {
+      "label": "Mechanical engineering",
+      "skills": [
+        "SolidWorks"
+      ],
+      "keywords": [
+        "mechanical",
+        "CAD",
+        "manufacturing",
+        "tolerance",
+        "stress",
+        "strain",
+        "thermodynamics",
+        "machining",
+        "FEA"
+      ],
+      "questions": [
+        {
+          "id": "mechanical-b1",
+          "difficulty": "Beginner",
+          "text": "How do you distinguish stress from strain, and why does the distinction matter when choosing a material?",
+          "concepts": [
+            "force",
+            "area",
+            "deformation",
+            "material properties"
+          ]
+        },
+        {
+          "id": "mechanical-i1",
+          "difficulty": "Intermediate",
+          "text": "Two manufactured parts do not fit despite matching their nominal CAD dimensions. How would you investigate the assembly?",
+          "concepts": [
+            "tolerance",
+            "measurement",
+            "datum",
+            "manufacturing",
+            "validation"
+          ]
+        },
+        {
+          "id": "mechanical-a1",
+          "difficulty": "Advanced",
+          "text": "How would you validate a mechanical component subject to repeated loading before accepting its design?",
+          "concepts": [
+            "fatigue",
+            "load cases",
+            "safety factor",
+            "model assumptions",
+            "testing"
+          ]
+        },
+        {
+          "id": "mechanical-b2",
+          "difficulty": "Beginner",
+          "text": "Why are tolerances needed on a manufacturing drawing?",
+          "concepts": [
+            "variation",
+            "fit",
+            "measurement",
+            "manufacturing"
+          ]
+        },
+        {
+          "id": "mechanical-b3",
+          "difficulty": "Beginner",
+          "text": "How would you compare two materials for a bracket that must carry a known load?",
+          "concepts": [
+            "load",
+            "strength",
+            "weight",
+            "material properties"
+          ]
+        },
+        {
+          "id": "mechanical-i2",
+          "difficulty": "Intermediate",
+          "text": "A shaft fails prematurely in service. What evidence would you gather before proposing a cause?",
+          "concepts": [
+            "loading",
+            "failure surface",
+            "material",
+            "history",
+            "inspection"
+          ]
+        },
+        {
+          "id": "mechanical-i3",
+          "difficulty": "Intermediate",
+          "text": "How would you choose a manufacturing process for a small batch of precision parts?",
+          "concepts": [
+            "material",
+            "tolerance",
+            "quantity",
+            "cost",
+            "process"
+          ]
+        },
+        {
+          "id": "mechanical-a2",
+          "difficulty": "Advanced",
+          "text": "How would you verify the assumptions and boundary conditions of a finite element model?",
+          "concepts": [
+            "boundary conditions",
+            "mesh",
+            "loads",
+            "convergence",
+            "validation"
+          ]
+        },
+        {
+          "id": "mechanical-a3",
+          "difficulty": "Advanced",
+          "text": "A machine component overheats under load. How would you investigate the mechanical and thermal causes?",
+          "concepts": [
+            "friction",
+            "loading",
+            "heat transfer",
+            "measurement",
+            "failure modes"
+          ]
+        }
+      ]
+    },
+    "general": {
+      "label": "General project and work skills",
+      "skills": [],
+      "keywords": [
+        "project",
+        "problem",
+        "planning",
+        "collaboration"
+      ],
+      "questions": [
+        {
+          "id": "general-b1",
+          "difficulty": "Beginner",
+          "text": "Describe a problem you worked on. What was your role, and what did you learn?",
+          "concepts": [
+            "problem",
+            "personal contribution",
+            "outcome",
+            "learning"
+          ]
+        },
+        {
+          "id": "general-i1",
+          "difficulty": "Intermediate",
+          "text": "Describe a decision where two reasonable approaches had different trade-offs. How did you choose and evaluate the result?",
+          "concepts": [
+            "alternatives",
+            "constraints",
+            "decisions",
+            "validation"
+          ]
+        },
+        {
+          "id": "general-a1",
+          "difficulty": "Advanced",
+          "text": "How would you lead a complex project when requirements are uncertain and different teams disagree on priorities?",
+          "concepts": [
+            "scope",
+            "prioritization",
+            "communication",
+            "risk",
+            "feedback"
+          ]
+        },
+        {
+          "id": "general-b2",
+          "difficulty": "Beginner",
+          "text": "How do you organize your work when you are given a task you have never done before?",
+          "concepts": [
+            "clarification",
+            "planning",
+            "resources",
+            "feedback"
+          ]
+        },
+        {
+          "id": "general-b3",
+          "difficulty": "Beginner",
+          "text": "Describe how you would communicate a delay to a teammate or supervisor.",
+          "concepts": [
+            "timing",
+            "status",
+            "impact",
+            "next steps"
+          ]
+        },
+        {
+          "id": "general-i2",
+          "difficulty": "Intermediate",
+          "text": "How would you resolve conflicting requirements from two stakeholders?",
+          "concepts": [
+            "stakeholders",
+            "constraints",
+            "priorities",
+            "communication",
+            "decision"
+          ]
+        },
+        {
+          "id": "general-i3",
+          "difficulty": "Intermediate",
+          "text": "Describe how you would check whether a project achieved its intended result.",
+          "concepts": [
+            "success criteria",
+            "measurement",
+            "evidence",
+            "feedback"
+          ]
+        },
+        {
+          "id": "general-a2",
+          "difficulty": "Advanced",
+          "text": "How would you manage risks and dependencies in a project with several teams?",
+          "concepts": [
+            "dependencies",
+            "risk",
+            "ownership",
+            "communication",
+            "monitoring"
+          ]
+        },
+        {
+          "id": "general-a3",
+          "difficulty": "Advanced",
+          "text": "How would you decide whether to change a project plan after receiving contradictory evidence?",
+          "concepts": [
+            "evidence",
+            "alternatives",
+            "trade-offs",
+            "decision",
+            "review"
+          ]
+        }
+      ]
+    }
+  }
+}

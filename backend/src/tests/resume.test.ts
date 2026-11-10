@@ -112,6 +112,22 @@ describe('POST /api/resumes (upload)', () => {
     expect(res.body.error).toMatch(/not a valid PDF/);
   });
 
+  it('rejects a DOCX with an incomplete ZIP signature', async () => {
+    const { agent } = await candidateAgent();
+    const res = await agent.post('/api/resumes')
+      .attach('file', Buffer.from([0x50, 0x4b, 0x00, 0x00]), 'resume.docx');
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/not a valid DOCX/);
+  });
+
+  it('rejects a MIME type that conflicts with the extension', async () => {
+    const { agent } = await candidateAgent();
+    const res = await agent.post('/api/resumes')
+      .attach('file', Buffer.from('%PDF-1.4'), { filename: 'resume.pdf', contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/does not match/);
+  });
+
   it('rejects requests without a file', async () => {
     const { agent } = await candidateAgent();
     const res = await agent.post('/api/resumes');

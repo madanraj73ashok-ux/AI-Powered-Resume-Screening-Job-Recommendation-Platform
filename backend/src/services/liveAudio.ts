@@ -55,7 +55,7 @@ export function attachLiveAudio(server: Server) {
             const result = await transcribeAudio(audio);
             if (tag !== epoch || ws.readyState !== WebSocket.OPEN) return;
             if (final) {
-              await saveDraft(id, uid, { questionId: qid, text: result.text, reviewRequired: result.reviewRequired });
+              await saveDraft(id, uid, { questionId: qid, text: result.text, reviewRequired: result.reviewRequired }, 'recognition');
               chunks = []; size = 0;
             }
             send({ type: final ? 'final' : 'partial', questionId: qid, ...result });
